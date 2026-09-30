@@ -101,6 +101,7 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
     var profileMenuExpanded by remember { mutableStateOf(false) }
     var showAddProfile by remember { mutableStateOf(false) }
     val destinationLabel = if (state.screen == TrainerScreen.Training) "⋮  Einstellungen" else "▶  Training"
+    val canChangeProfiles = state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
 
     BoxWithConstraints(
         modifier = Modifier
@@ -128,6 +129,7 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
                     onAdd = { showAddProfile = true },
                     menuExpanded = profileMenuExpanded,
                     onMenuExpandedChange = { profileMenuExpanded = it },
+                    canChangeProfiles = canChangeProfiles,
                     compact = true,
                 )
             }
@@ -146,6 +148,7 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
                     onAdd = { showAddProfile = true },
                     menuExpanded = profileMenuExpanded,
                     onMenuExpandedChange = { profileMenuExpanded = it },
+                    canChangeProfiles = canChangeProfiles,
                     compact = false,
                     modifier = Modifier.weight(1f),
                 )
@@ -175,6 +178,7 @@ private fun ProfileControls(
     onAdd: () -> Unit,
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
+    canChangeProfiles: Boolean,
     compact: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -184,7 +188,7 @@ private fun ProfileControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box {
-            HeaderAction(onClick = { onMenuExpandedChange(true) }, text = "⌄  ${state.selectedProfile.name}")
+            HeaderAction(onClick = { onMenuExpandedChange(true) }, text = "⌄  ${state.selectedProfile.name}", enabled = canChangeProfiles)
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { onMenuExpandedChange(false) },
@@ -200,13 +204,13 @@ private fun ProfileControls(
             }
         }
         Spacer(Modifier.width(8.dp))
-        HeaderAction(onClick = onAdd, text = "+  Profil")
+        HeaderAction(onClick = onAdd, text = "+  Profil", enabled = canChangeProfiles)
     }
 }
 
 @Composable
-private fun HeaderAction(onClick: () -> Unit, text: String) {
-    TextButton(onClick = onClick) {
+private fun HeaderAction(onClick: () -> Unit, text: String, enabled: Boolean = true) {
+    TextButton(onClick = onClick, enabled = enabled) {
         Text(text, color = Color.Black, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -235,6 +239,107 @@ private fun AddProfileDialog(onDismiss: () -> Unit, onCreate: (String) -> Boolea
         },
         confirmButton = {
             TextButton(onClick = { error = !onCreate(name) }) { Text("Erstellen", color = MorseOrange) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen", color = SoftYellow) } },
+        backgroundColor = PanelBlack,
+        contentColor = SoftYellow,
+    )
+}
+
+@Composable
+private fun ProfileManagementCard(
+    profile: TrainingProfile,
+    canDelete: Boolean,
+    onRename: (String) -> Boolean,
+    onDelete: () -> Boolean,
+) {
+    var showRename by remember(profile.id) { mutableStateOf(false) }
+    var showDelete by remember(profile.id) { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = PanelBlack,
+        shape = RoundedCornerShape(14.dp),
+        elevation = 0.dp,
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Aktives Profil", color = Muted, fontSize = 12.sp)
+                    Text(profile.name, color = WarmYellow, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
+                TextButton(onClick = { showRename = true }) {
+                    Text("✎  Umbenennen", color = MorseOrange)
+                }
+                TextButton(onClick = { showDelete = true }, enabled = canDelete) {
+                    Text("⌫  Löschen", color = if (canDelete) Color(0xFFFF8A80) else Muted)
+                }
+            }
+            if (!canDelete) {
+                Text(
+                    "Das letzte Profil kann nicht gelöscht werden. Während eines Trainings ist Löschen deaktiviert.",
+                    color = Muted,
+                    fontSize = 12.sp,
+                )
+            }
+        }
+    }
+
+    if (showRename) {
+        RenameProfileDialog(
+            currentName = profile.name,
+            onDismiss = { showRename = false },
+            onRename = { name ->
+                val renamed = onRename(name)
+                if (renamed) showRename = false
+                renamed
+            },
+        )
+    }
+
+    if (showDelete) {
+        AlertDialog(
+            onDismissRequest = { showDelete = false },
+            title = { Text("Profil löschen?") },
+            text = { Text("„${profile.name}“ und seine Einstellungen werden gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.", color = SoftYellow) },
+            confirmButton = {
+                TextButton(onClick = { if (onDelete()) showDelete = false }) {
+                    Text("Löschen", color = Color(0xFFFF8A80))
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Abbrechen", color = SoftYellow) } },
+            backgroundColor = PanelBlack,
+            contentColor = SoftYellow,
+        )
+    }
+}
+
+@Composable
+private fun RenameProfileDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onRename: (String) -> Boolean,
+) {
+    var name by remember(currentName) { mutableStateOf(currentName) }
+    var error by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Profil umbenennen") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it; error = false },
+                    label = { Text("Profilname") },
+                    singleLine = true,
+                    isError = error,
+                    colors = fieldColors(),
+                )
+                if (error) Text("Name leer oder bereits vergeben.", color = Color(0xFFFF8A80), fontSize = 12.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { error = !onRename(name) }) { Text("Speichern", color = MorseOrange) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen", color = SoftYellow) } },
         backgroundColor = PanelBlack,
@@ -279,7 +384,7 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
                     Spacer(Modifier.height(8.dp))
                     when {
                         active || paused -> {
-                            Text("$minutes:${seconds.toString().padStart(2, '0')}", color = WarmYellow, fontSize = 58.sp, fontWeight = FontWeight.Light)
+                            Text("$minutes:${seconds.toString().padStart(2, '0')}", color = WarmYellow, fontSize = 32.sp, fontWeight = FontWeight.Light)
                             Text("verbleibende Zeit", color = Muted, fontSize = 14.sp)
                         }
                         else -> {
@@ -308,7 +413,7 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
 
             Spacer(Modifier.height(26.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
                 ControlButton(
                     symbol = "■",
                     label = "Stopp",
@@ -390,6 +495,7 @@ private fun TranscriptPanel(transcript: String) {
 @Composable
 private fun SettingsScreen(state: TrainerUiState, controller: TrainerController) {
     val profile = state.selectedProfile
+    val canDeleteProfile = state.profiles.size > 1 && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 18.dp),
@@ -400,6 +506,14 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 Text("Einstellungen", color = WarmYellow, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
                 Text("Diese Werte gelten für das Profil „${profile.name}“.", color = Muted, fontSize = 14.sp)
             }
+        }
+        item {
+            ProfileManagementCard(
+                profile = profile,
+                canDelete = canDeleteProfile,
+                onRename = { name -> controller.renameProfile(profile.id, name) },
+                onDelete = { controller.deleteProfile(profile.id) },
+            )
         }
         item { SectionTitle("Training") }
         item {

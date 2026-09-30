@@ -70,18 +70,24 @@ class TrainerController {
     }
 
     fun selectProfile(profileId: String) {
+        if (_state.value.status == TrainingStatus.Playing || _state.value.status == TrainingStatus.Paused) return
         if (_state.value.profiles.none { it.id == profileId }) return
         persist(_state.value.profiles, profileId)
         val profile = _state.value.profiles.first { it.id == profileId }
         _state.update {
             it.copy(
                 selectedProfileId = profileId,
-                remainingMillis = if (it.status == TrainingStatus.Idle) profile.trainingLengthSeconds * 1_000L else it.remainingMillis,
+                status = TrainingStatus.Idle,
+                remainingMillis = profile.trainingLengthSeconds * 1_000L,
+                transcript = "",
+                visibleTranscript = null,
+                message = null,
             )
         }
     }
 
     fun addProfile(rawName: String): Boolean {
+        if (_state.value.status == TrainingStatus.Playing || _state.value.status == TrainingStatus.Paused) return false
         val name = rawName.trim()
         if (name.isEmpty() || _state.value.profiles.any { it.name.equals(name, ignoreCase = true) }) return false
         val id = "profile-${Random.nextLong().toULong().toString(16)}"
@@ -92,8 +98,52 @@ class TrainerController {
             it.copy(
                 profiles = profiles,
                 selectedProfileId = id,
+                status = TrainingStatus.Idle,
                 remainingMillis = profile.trainingLengthSeconds * 1_000L,
+                transcript = "",
+                visibleTranscript = null,
+                message = null,
             )
+        }
+        return true
+    }
+
+    fun renameProfile(profileId: String, rawName: String): Boolean {
+        val current = _state.value
+        val name = rawName.trim()
+        val target = current.profiles.firstOrNull { it.id == profileId } ?: return false
+        if (name.isEmpty() || current.profiles.any { it.id != profileId && it.name.equals(name, ignoreCase = true) }) return false
+        if (target.name == name) return true
+        val profiles = current.profiles.map { if (it.id == profileId) it.copy(name = name) else it }
+        persist(profiles, current.selectedProfileId)
+        _state.update { it.copy(profiles = profiles) }
+        return true
+    }
+
+    fun deleteProfile(profileId: String): Boolean {
+        val current = _state.value
+        if (current.status == TrainingStatus.Playing || current.status == TrainingStatus.Paused) return false
+        if (current.profiles.size <= 1 || current.profiles.none { it.id == profileId }) return false
+
+        val profiles = current.profiles.filterNot { it.id == profileId }
+        val deletingSelected = current.selectedProfileId == profileId
+        val selectedId = if (deletingSelected) profiles.first().id else current.selectedProfileId
+        persist(profiles, selectedId)
+        _state.update {
+            if (deletingSelected) {
+                val nextProfile = profiles.first { it.id == selectedId }
+                it.copy(
+                    profiles = profiles,
+                    selectedProfileId = selectedId,
+                    status = TrainingStatus.Idle,
+                    remainingMillis = nextProfile.trainingLengthSeconds * 1_000L,
+                    transcript = "",
+                    visibleTranscript = null,
+                    message = null,
+                )
+            } else {
+                it.copy(profiles = profiles)
+            }
         }
         return true
     }
@@ -217,7 +267,7 @@ class TrainerController {
 
     private fun appendTranscript(character: MorseCharacter, startsGroup: Boolean) {
         _state.update { current ->
-            val next = current.transcript + (if (startsGroup) " " else "") + character.label
+            val next = current.transcript + (if (startsGroup) "  " else "") + character.label
             current.copy(transcript = next)
         }
     }
