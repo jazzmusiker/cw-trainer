@@ -68,7 +68,12 @@ fun CwTrainerApp() {
     val controller = remember { TrainerController() }
     val state by controller.state.collectAsState()
     DisposableEffect(controller) {
-        onDispose { controller.dispose() }
+        val unregisterLifecycleObserver = registerAppLifecycleObserver(controller::onAppVisibilityChanged)
+        controller.onAppVisibilityChanged(true)
+        onDispose {
+            unregisterLifecycleObserver()
+            controller.dispose()
+        }
     }
 
     MaterialTheme(
@@ -101,7 +106,7 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
     var profileMenuExpanded by remember { mutableStateOf(false) }
     var showAddProfile by remember { mutableStateOf(false) }
     val destinationLabel = if (state.screen == TrainerScreen.Training) "⋮  Einstellungen" else "▶  Training"
-    val canChangeProfiles = state.status != TrainingStatus.Starting && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
+    val canChangeProfiles = !state.previewing && state.status != TrainingStatus.Starting && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
 
     BoxWithConstraints(
         modifier = Modifier
@@ -502,7 +507,7 @@ private fun TranscriptPanel(transcript: String) {
 @Composable
 private fun SettingsScreen(state: TrainerUiState, controller: TrainerController) {
     val profile = state.selectedProfile
-    val canDeleteProfile = state.profiles.size > 1 && state.status != TrainingStatus.Starting && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
+    val canDeleteProfile = state.profiles.size > 1 && !state.previewing && state.status != TrainingStatus.Starting && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 18.dp),

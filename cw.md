@@ -92,7 +92,36 @@
 - Läuft die Trainingszeit ab, soll das gerade ausgegebene Zeichen noch fertig ausgegeben werden und dann das Training gestoppt werden, 
   sowie der ausgegebene Text erscheinen.
 
+## Audio Generierung
 
+Nachfolgend beschrieben werden 2. Verfahren
+
+# Verfahren 1
+
+- Es wird eine Funktion playTone zum Abspielen eines Tones angewendet
+- Als Parameter werden übergeben frequencyHz für die Frequenz und durationMillis für die Länge des Tones in Millisekunden
+- Bei jedem Aufruf der Funktion werden die Samples neu berechnet und anschließend abgespielt.
+- Die Samples werden als Sinuswelle berechnet, an den ersten und letzten 96 Samples aber leicht abgeschwächt, um Klickgeräusche zu mindern.
+
+# Verfahren 2
+- Hintergrund von Verfahrne 2: Mit Verfahren 1 ist die gemorste Geschwindigkeit effektiv   
+  Merklich langsamer als eingestellt. Damit bei Aufruf von playTone nicht jedes mal Rechenzeit für die Generierung verloren geht, werden die Samples nur bei Änderung der 
+  Tonfrequenz oder der Geschwindigkeit vorgerechnet.
+- Es werden die Audiosamples audioSamplesDot und audioSamplesDash berechnet. Die samples enthalten nur Ton. 
+- Samplefrequenz, Mono-PCM-Format und Abschwächung der ersten und letzten 96 Samples sollen aus   
+  Verfahren 1 übernommen werden
+- Die Samples sollen erstmals beim Laden des Profils und dann immer bei Änderung der Ton Frequenz oder der Geschwindigkeit berechnet werden.
+- Beim Wechsel des Profils sollen die Samples neu berechnet werden entsprechend der Einstellungen im Profil.
+- Punkt- und Strichsamples werden pro Zeichen zusammen mit den internen Punktabständen zu einem Audioblock kombiniert und gemeinsam ausgegeben. Der Audiokanal wird für die Dauer einer Übertragung geöffnet und für alle Zeichen dieser Übertragung wiederverwendet.
+- Verfahren 2 gilt für das Training und auch für den "CQ TEST"-Hörknopf. 
+- Verfahren 2 soll die bestehende Zeitlogik übernehmen: Punktdauer `1200 / WPM` Millisekunden, Strichdauer dreimal so lang, Pausen weiterhin separat.
+- Länge der Samples: Punktdauer `1200 / WPM` Millisekunden, Strichdauer dreimal so lang.
+- Zeitsteuerung: Die Wiedergabe eines Zeichens kehrt zurück, wenn der gesamte Audioblock bis zum Ende abgespielt wurde.
+- Die Wiedergabe darf bei einem Fehler des Audiostreams nicht unbegrenzt warten. Bei einer Zeitüberschreitung wird der Stream geschlossen, das Training mit einer Fehlermeldung beendet und ein neuer Trainingsstart ermöglicht.
+- Audiokanal-Lebenszyklus: Im Leerlauf bleibt kein Audiokanal geöffnet. Für ein Training wird der Audiokanal zu Beginn der Morseausgabe geöffnet und bei Pause, Stopp, Trainingsende oder Wechsel in den Hintergrund geschlossen. Beim Fortsetzen wird er erneut geöffnet. Für "CQ TEST" wird der Audiokanal unmittelbar vor der Ausgabe geöffnet und nach deren Ende geschlossen.
+- Profile und Änderungen während des Trainings: Änderungen gelten ab dem nächsten Trainingsstart; das laufende Training verwendet weiter seine Startwerte und Samples. Die Neuberechnung soll bis zum Trainingsende warten.
+- Wechsel in den Hintergrund: Das laufende Training soll beendet werden.
+- Wenn die Punktdauer keine ganze Millisekundenzahl ergibt, soll wie in verfahren 1 auf ganze Millisekunden abgeschnitten werden.
 
 
 #Statistik (noch nicht umsetzen, unklar wie der Lernende seine Rückmeldung eingibt)
@@ -107,4 +136,4 @@
   * 5. Spalte Anzahl wie oft das Zeichen fälschlicherweise gehört wurde, obwohl ein anderes Zeichen ausgegeben wurde.
 
 
-codex resume 01a0ecb3-136a-7c43-a153-82b4c7bdcc01
+Rein informativ: codex resume 01a0ecb3-136a-7c43-a153-82b4c7bdcc01

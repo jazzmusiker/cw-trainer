@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -28,9 +30,12 @@ class TrainerController {
     val state: StateFlow<TrainerUiState> = _state.asStateFlow()
 
     private val requestedAction = MutableStateFlow(RequestedAction.None)
+    private val appVisible = MutableStateFlow(false)
+    private val audioConfigurationMutex = Mutex()
     private val resumeGate = MutableStateFlow<CompletableDeferred<Unit>?>(null)
     private var trainingJob: Job? = null
     private var previewJob: Job? = null
+    private var audioPreparationJob: Job? = null
     private var timerJob: Job? = null
     private var segmentStart: TimeMark? = null
     private var segmentBaseMillis: Long = _state.value.remainingMillis
@@ -65,7 +70,55 @@ class TrainerController {
         timerJob?.cancel()
         trainingJob?.cancel()
         previewJob?.cancel()
+        audioPreparationJob?.cancel()
         scope.cancel()
+        closeAudioOutput()
+    }
+
+    fun onAppVisibilityChanged(isVisible: Boolean) {
+        if (isVisible) {
+            if (appVisible.value) return
+            appVisible.value = true
+            scheduleToneSamplePreparation(_state.value.selectedProfile)
+            return
+        }
+
+        if (!appVisible.value) return
+        appVisible.value = false
+        audioPreparationJob?.cancel()
+        previewJob?.cancel()
+        if (_state.value.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) {
+            trainingJob?.cancel()
+            finish(TrainingStatus.Stopped, "Training beim Wechsel in den Hintergrund beendet")
+        }
+        closeAudioOutput()
+    }
+
+    private suspend fun prepareToneSamples(profile: TrainingProfile) {
+        audioConfigurationMutex.withLock {
+            configureToneSamples(profile.frequencyHz, profile.speedWpm)
+        }
+    }
+
+    private suspend fun beginAudioTransmission(profile: TrainingProfile) {
+        audioConfigurationMutex.withLock {
+            configureToneSamples(profile.frequencyHz, profile.speedWpm)
+            openAudioOutput()
+        }
+    }
+
+    private fun scheduleToneSamplePreparation(profile: TrainingProfile) {
+        if (!appVisible.value) return
+        audioPreparationJob?.cancel()
+        audioPreparationJob = scope.launch {
+            try {
+                prepareToneSamples(profile)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                _state.update { it.copy(message = "Audioausgabe nicht verfügbar: ${failure.message ?: "unbekannter Fehler"}") }
+            }
+        }
     }
 
     fun toggleScreen() {
@@ -73,6 +126,7 @@ class TrainerController {
     }
 
     fun selectProfile(profileId: String) {
+        if (_state.value.previewing) return
         if (_state.value.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) return
         if (_state.value.profiles.none { it.id == profileId }) return
         persist(_state.value.profiles, profileId)
@@ -88,9 +142,11 @@ class TrainerController {
                 message = null,
             )
         }
+        scheduleToneSamplePreparation(profile)
     }
 
     fun addProfile(rawName: String): Boolean {
+        if (_state.value.previewing) return false
         if (_state.value.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) return false
         val name = rawName.trim()
         if (name.isEmpty() || _state.value.profiles.any { it.name.equals(name, ignoreCase = true) }) return false
@@ -110,6 +166,7 @@ class TrainerController {
                 message = null,
             )
         }
+        scheduleToneSamplePreparation(profile)
         return true
     }
 
@@ -127,6 +184,7 @@ class TrainerController {
 
     fun deleteProfile(profileId: String): Boolean {
         val current = _state.value
+        if (current.previewing) return false
         if (current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) return false
         if (current.profiles.size <= 1 || current.profiles.none { it.id == profileId }) return false
 
@@ -151,6 +209,7 @@ class TrainerController {
                 it.copy(profiles = profiles)
             }
         }
+        if (deletingSelected) scheduleToneSamplePreparation(_state.value.selectedProfile)
         return true
     }
 
@@ -179,20 +238,25 @@ class TrainerController {
                 remainingMillis = if (it.status == TrainingStatus.Idle) changed.trainingLengthSeconds * 1_000L else it.remainingMillis,
             )
         }
+        val audioSettingsChanged = changed.frequencyHz != selected.frequencyHz || changed.speedWpm != selected.speedWpm
+        val trainingActive = current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)
+        if (audioSettingsChanged && !trainingActive && !current.previewing) scheduleToneSamplePreparation(changed)
     }
 
     fun previewCqTest() {
         val current = _state.value
+        if (current.previewing) return
         if (current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) return
         if (previewJob?.isActive == true) return
 
         val profile = current.selectedProfile
-        val dotMillis = (1_200.0 / profile.speedWpm).toLong().coerceAtLeast(1L)
+        val dotMillis = dotDurationMillis(profile.speedWpm)
         val cq = listOf("c", "q").map { id -> MorseCharacters.all.first { it.id == id } }
         val test = listOf("t", "e", "s", "t").map { id -> MorseCharacters.all.first { it.id == id } }
         _state.update { it.copy(previewing = true) }
         previewJob = scope.launch {
             try {
+                beginAudioTransmission(profile)
                 emitPreviewWord(cq, profile, dotMillis)
                 delay(profile.pauseBetweenGroups * dotMillis)
                 emitPreviewWord(test, profile, dotMillis)
@@ -201,8 +265,10 @@ class TrainerController {
             } catch (failure: Throwable) {
                 _state.update { it.copy(message = "Audioausgabe nicht verfügbar: ${failure.message ?: "unbekannter Fehler"}") }
             } finally {
+                closeAudioOutput()
                 _state.update { it.copy(previewing = false) }
                 previewJob = null
+                scheduleToneSamplePreparation(_state.value.selectedProfile)
             }
         }
     }
@@ -210,7 +276,7 @@ class TrainerController {
     private suspend fun emitPreviewWord(word: List<MorseCharacter>, profile: TrainingProfile, dotMillis: Long) {
         word.forEachIndexed { index, character ->
             if (index > 0) delay(profile.pauseBetweenCharacters * dotMillis)
-            emitCharacter(character, profile.frequencyHz, dotMillis)
+            emitCharacter(character)
         }
     }
 
@@ -219,7 +285,7 @@ class TrainerController {
     }
 
     fun startOrResume() {
-        if (previewJob?.isActive == true) return
+        if (_state.value.previewing || previewJob?.isActive == true) return
         when (_state.value.status) {
             TrainingStatus.Paused -> {
                 requestedAction.value = RequestedAction.None
@@ -253,37 +319,45 @@ class TrainerController {
             )
         }
         trainingJob = scope.launch {
-            if (startDelayMillis > 0L) {
-                val startMark = TimeSource.Monotonic.markNow()
-                while (true) {
-                    val left = (startDelayMillis - startMark.elapsedNow().inWholeMilliseconds).coerceAtLeast(0L)
-                    _state.update {
-                        it.copy(
-                            startDelayRemainingMillis = left,
-                            message = if (left > 0L) "Morsen startet in ${(left + 999L) / 1_000L} s" else "Morsen startet",
-                        )
+            try {
+                prepareToneSamples(profile)
+                if (startDelayMillis > 0L) {
+                    val startMark = TimeSource.Monotonic.markNow()
+                    while (true) {
+                        val left = (startDelayMillis - startMark.elapsedNow().inWholeMilliseconds).coerceAtLeast(0L)
+                        _state.update {
+                            it.copy(
+                                startDelayRemainingMillis = left,
+                                message = if (left > 0L) "Morsen startet in ${(left + 999L) / 1_000L} s" else "Morsen startet",
+                            )
+                        }
+                        if (requestedAction.value == RequestedAction.Stop) {
+                            finish(TrainingStatus.Stopped, null)
+                            return@launch
+                        }
+                        if (left <= 0L) break
+                        delay(minOf(left, 100L))
                     }
-                    if (requestedAction.value == RequestedAction.Stop) {
-                        finish(TrainingStatus.Stopped, null)
-                        return@launch
-                    }
-                    if (left <= 0L) break
-                    delay(minOf(left, 100L))
                 }
+                if (requestedAction.value == RequestedAction.Stop) {
+                    finish(TrainingStatus.Stopped, null)
+                    return@launch
+                }
+                beginAudioTransmission(profile)
+                _state.update {
+                    it.copy(
+                        status = TrainingStatus.Playing,
+                        startDelayRemainingMillis = 0,
+                        message = "Training läuft",
+                    )
+                }
+                startTimerSegment(durationMillis)
+                runSession(profile, enabled)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                finish(TrainingStatus.Stopped, "Audioausgabe nicht verfügbar: ${failure.message ?: "unbekannter Fehler"}")
             }
-            if (requestedAction.value == RequestedAction.Stop) {
-                finish(TrainingStatus.Stopped, null)
-                return@launch
-            }
-            _state.update {
-                it.copy(
-                    status = TrainingStatus.Playing,
-                    startDelayRemainingMillis = 0,
-                    message = "Training läuft",
-                )
-            }
-            startTimerSegment(durationMillis)
-            runSession(profile, enabled)
         }
     }
 
@@ -306,7 +380,7 @@ class TrainerController {
     }
 
     private suspend fun runSession(profile: TrainingProfile, enabled: List<MorseCharacter>) {
-        val dotMillis = (1_200.0 / profile.speedWpm).toLong().coerceAtLeast(1L)
+        val dotMillis = dotDurationMillis(profile.speedWpm)
         var firstGroup = true
         try {
             while (true) {
@@ -322,7 +396,7 @@ class TrainerController {
                         return
                     }
                     val character = enabled.random()
-                    emitCharacter(character, profile.frequencyHz, dotMillis)
+                    emitCharacter(character)
                     appendTranscript(character, index == 0 && _state.value.transcript.isNotEmpty())
                     if (!handleCharacterBoundary()) return
                 }
@@ -334,11 +408,8 @@ class TrainerController {
         }
     }
 
-    private suspend fun emitCharacter(character: MorseCharacter, frequencyHz: Double, dotMillis: Long) {
-        character.pattern.forEachIndexed { index, mark ->
-            playTone(frequencyHz, if (mark == '-') dotMillis * 3 else dotMillis)
-            if (index < character.pattern.lastIndex) delay(dotMillis)
-        }
+    private suspend fun emitCharacter(character: MorseCharacter) {
+        playMorsePattern(character.pattern)
     }
 
     private fun appendTranscript(character: MorseCharacter, startsGroup: Boolean) {
@@ -373,6 +444,7 @@ class TrainerController {
                 return false
             }
             RequestedAction.Pause -> {
+                closeAudioOutput()
                 freezeTimer()
                 requestedAction.value = RequestedAction.None
                 val gate = CompletableDeferred<Unit>()
@@ -390,6 +462,7 @@ class TrainerController {
                     finish(TrainingStatus.Finished, "Training beendet")
                     return false
                 }
+                openAudioOutput()
                 startTimerSegment(resumedWith)
                 _state.update { it.copy(status = TrainingStatus.Playing, message = "Training läuft") }
                 return true
@@ -427,6 +500,7 @@ class TrainerController {
 
     private fun finish(status: TrainingStatus, message: String?) {
         freezeTimer()
+        closeAudioOutput()
         requestedAction.value = RequestedAction.None
         resumeGate.value?.complete(Unit)
         resumeGate.value = null
@@ -439,5 +513,6 @@ class TrainerController {
             )
         }
         trainingJob = null
+        if (appVisible.value) scheduleToneSamplePreparation(_state.value.selectedProfile)
     }
 }

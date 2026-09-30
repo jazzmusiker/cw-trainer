@@ -10,4 +10,14 @@ class MainActivity : ComponentActivity() {
         initializePlatformStorage(this)
         setContent { CwTrainerApp() }
     }
+
+    override fun onStart() {
+        super.onStart()
+        notifyAppVisibilityChanged(true)
+    }
+
+    override fun onStop() {
+        notifyAppVisibilityChanged(false)
+        super.onStop()
+    }
 }
