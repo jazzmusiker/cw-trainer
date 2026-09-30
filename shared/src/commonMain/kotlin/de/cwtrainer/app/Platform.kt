@@ -6,6 +6,8 @@ expect suspend fun playMorsePattern(pattern: String)
 expect fun closeAudioOutput()
 expect fun loadSavedProfiles(): String?
 expect fun saveProfiles(data: String)
+expect fun loadSavedStatistics(): String?
+expect fun saveStatistics(data: String)
 
 private val appLifecycleObservers = mutableSetOf<(Boolean) -> Unit>()
 

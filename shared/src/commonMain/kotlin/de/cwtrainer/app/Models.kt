@@ -1,6 +1,7 @@
 package de.cwtrainer.app
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class TrainingProfile(
@@ -21,6 +22,29 @@ data class TrainingProfile(
 data class SavedProfiles(
     val selectedProfileId: String = "default",
     val profiles: List<TrainingProfile> = listOf(TrainingProfile(id = "default", name = "Default")),
+)
+
+@Serializable
+data class CharacterStatistics(
+    val correctlyHeard: Long = 0,
+    val notHeard: Long = 0,
+    val falselyHeard: Long = 0,
+)
+
+@Serializable
+data class SavedStatistics(
+    @SerialName("totalPresentedCharacters")
+    val totalPresentedItems: Long = 0,
+    val characters: Map<String, CharacterStatistics> = emptyMap(),
+)
+
+const val GroupSpaceStatisticId = "__group_space__"
+val GroupSpaceCharacter = MorseCharacter(GroupSpaceStatisticId, "␠", "Gruppenabstand")
+
+data class TrainingReviewEntry(
+    val emittedCharacterId: String,
+    val startsGroup: Boolean,
+    val heardCharacterId: String? = emittedCharacterId,
 )
 
 data class MorseCharacter(
@@ -63,7 +87,7 @@ object MorseCharacters {
     }
 }
 
-enum class TrainerScreen { Training, Settings }
+enum class TrainerScreen { Training, Settings, Statistics }
 enum class TrainingStatus { Idle, Starting, Playing, Paused, Stopped, Finished }
 
 data class TrainerUiState(
@@ -76,6 +100,9 @@ data class TrainerUiState(
     val previewing: Boolean = false,
     val transcript: String = "",
     val visibleTranscript: String? = null,
+    val transmittedCharacters: List<TrainingReviewEntry> = emptyList(),
+    val pendingReview: List<TrainingReviewEntry>? = null,
+    val statistics: SavedStatistics = SavedStatistics(),
     val message: String? = null,
 ) {
     val selectedProfile: TrainingProfile

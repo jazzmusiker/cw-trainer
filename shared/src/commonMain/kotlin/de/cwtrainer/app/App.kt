@@ -2,6 +2,7 @@ package de.cwtrainer.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,9 +12,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.toggleable
@@ -27,6 +30,7 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.CheckboxDefaults
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.Divider
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
@@ -95,6 +99,7 @@ fun CwTrainerApp() {
                 when (state.screen) {
                     TrainerScreen.Training -> TrainingScreen(state, controller)
                     TrainerScreen.Settings -> SettingsScreen(state, controller)
+                    TrainerScreen.Statistics -> StatisticsScreen(state, controller)
                 }
             }
         }
@@ -126,6 +131,11 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
                     )
                     TextButton(onClick = controller::toggleScreen) {
                         Text(destinationLabel, color = Color.Black, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (state.screen != TrainerScreen.Statistics) {
+                        TextButton(onClick = controller::showStatistics) {
+                            Text("Statistik", color = Color.Black, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        }
                     }
                 }
                 ProfileControls(
@@ -159,6 +169,11 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
                 )
                 TextButton(onClick = controller::toggleScreen) {
                     Text(destinationLabel, color = Color.Black, fontWeight = FontWeight.SemiBold)
+                }
+                if (state.screen != TrainerScreen.Statistics) {
+                    TextButton(onClick = controller::showStatistics) {
+                        Text("Statistik", color = Color.Black, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -447,9 +462,13 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
                 active -> StatusText(text = "Training läuft · ${remainingSeconds}s verbleiben")
                 paused -> StatusText(text = "Training pausiert · ${remainingSeconds}s verbleiben")
                 state.message?.startsWith("Audioausgabe") == true -> StatusText(text = state.message.orEmpty())
-                hasTranscript -> TranscriptPanel(state.visibleTranscript.orEmpty())
-                state.message != null -> StatusText(text = state.message.orEmpty())
-                else -> Spacer(Modifier.height(48.dp))
+                state.message?.startsWith("Statistik") == true -> StatusText(text = state.message.orEmpty())
+            }
+            when {
+                state.pendingReview != null -> TranscriptReviewPanel(state.pendingReview, controller)
+                state.visibleTranscript != null -> TranscriptPanel(state.visibleTranscript)
+                state.message != null && !starting && !active && !paused && !state.message.startsWith("Audioausgabe") && !state.message.startsWith("Statistik") -> StatusText(text = state.message)
+                !starting && !active && !paused && state.message == null -> Spacer(Modifier.height(48.dp))
             }
         }
     }
@@ -499,9 +518,240 @@ private fun TranscriptPanel(transcript: String) {
         Column(Modifier.padding(18.dp)) {
             Text("AUSGEGEBENER TEXT", color = MorseOrange, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(Modifier.height(8.dp))
-            Text(transcript, color = WarmYellow, fontSize = 19.sp, lineHeight = 28.sp)
+            Text(transcript.replace("  ", " ␠ "), color = WarmYellow, fontSize = 19.sp, lineHeight = 28.sp)
         }
     }
+}
+
+@Composable
+private fun TranscriptReviewPanel(entries: List<TrainingReviewEntry>, controller: TrainerController) {
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    val groups = remember(entries) {
+        val result = mutableListOf<MutableList<Pair<Int, TrainingReviewEntry>>>()
+        entries.forEachIndexed { index, entry ->
+            if (result.isEmpty() || entry.startsGroup) result.add(mutableListOf())
+            result.last().add(index to entry)
+        }
+        result.map { it.toList() }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = PanelBlack,
+        shape = RoundedCornerShape(16.dp),
+        elevation = 0.dp,
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "AUSGABE AUSWERTEN",
+                    modifier = Modifier.weight(1f),
+                    color = MorseOrange,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                )
+                TextButton(onClick = controller::discardReview) {
+                    Text("Ausgaben verwerfen", color = Color(0xFFFF8A80), fontSize = 11.sp)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text("Tippe Zeichen oder Gruppenabstände an, die du nicht oder anders gehört hast.", color = Muted, fontSize = 13.sp)
+            Spacer(Modifier.height(10.dp))
+            LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                itemsIndexed(groups) { _, group ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        group.forEach { (index, entry) ->
+                            ReviewCharacterToken(entry) { selectedIndex = index }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = controller::commitReview,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(backgroundColor = MorseOrange, contentColor = Color.Black),
+            ) {
+                Text("Auswertung übernehmen", fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+
+    selectedIndex?.let { index ->
+        val entry = entries.getOrNull(index)
+        if (entry != null) {
+            ReviewAnswerDialog(
+                entry = entry,
+                onCorrect = {
+                    controller.markReviewAsHeard(index, entry.emittedCharacterId)
+                    selectedIndex = null
+                },
+                onNotHeard = {
+                    controller.markReviewAsNotHeard(index)
+                    selectedIndex = null
+                },
+                onHeardAs = { characterId ->
+                    controller.markReviewAsHeard(index, characterId)
+                    selectedIndex = null
+                },
+                onDismiss = { selectedIndex = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewCharacterToken(entry: TrainingReviewEntry, onClick: () -> Unit) {
+    val emitted = reviewCharacter(entry.emittedCharacterId)
+    val heard = entry.heardCharacterId?.let(::reviewCharacter)
+    val correct = entry.heardCharacterId == entry.emittedCharacterId
+    val color = if (correct) Color(0xFF263A2B) else Color(0xFF542D2D)
+    val feedback = when {
+        correct -> null
+        entry.heardCharacterId == null -> "Nicht gehört"
+        else -> heard?.label
+    }
+    Card(
+        modifier = Modifier.padding(end = 7.dp, bottom = 6.dp).clickable(onClick = onClick),
+        backgroundColor = color,
+        shape = RoundedCornerShape(10.dp),
+        elevation = 0.dp,
+    ) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(emitted?.label ?: entry.emittedCharacterId, color = WarmYellow, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            feedback?.let { Text(it, color = SoftYellow, fontSize = 8.sp, maxLines = 1) }
+        }
+    }
+}
+
+@Composable
+private fun ReviewAnswerDialog(
+    entry: TrainingReviewEntry,
+    onCorrect: () -> Unit,
+    onNotHeard: () -> Unit,
+    onHeardAs: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val emitted = reviewCharacter(entry.emittedCharacterId)
+    val alternatives = (if (entry.emittedCharacterId == GroupSpaceStatisticId) {
+        MorseCharacters.all
+    } else {
+        MorseCharacters.all + GroupSpaceCharacter
+    }).filterNot { it.id == entry.emittedCharacterId }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Ausgegeben: ${emitted?.label ?: entry.emittedCharacterId}") },
+        text = {
+            Column {
+                TextButton(onClick = onCorrect) { Text("Richtig gehört", color = WarmYellow) }
+                TextButton(onClick = onNotHeard) { Text("Nicht gehört", color = WarmYellow) }
+                Spacer(Modifier.height(4.dp))
+                Text("Als anderes Zeichen oder als Gruppenabstand gehört:", color = Muted, fontSize = 13.sp)
+                LazyColumn(Modifier.heightIn(max = 250.dp)) {
+                    itemsIndexed(alternatives) { _, character ->
+                        TextButton(onClick = { onHeardAs(character.id) }, modifier = Modifier.fillMaxWidth()) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(character.label, color = WarmYellow)
+                                Text(character.pattern, color = Muted)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Schließen", color = SoftYellow) } },
+        backgroundColor = PanelBlack,
+        contentColor = SoftYellow,
+    )
+}
+
+private fun reviewCharacter(id: String): MorseCharacter? =
+    if (id == GroupSpaceStatisticId) GroupSpaceCharacter else MorseCharacters.all.firstOrNull { it.id == id }
+
+@Composable
+private fun StatisticsScreen(state: TrainerUiState, controller: TrainerController) {
+    var confirmReset by remember { mutableStateOf(false) }
+    val horizontalScroll = rememberScrollState()
+    val columnWidths = listOf(92.dp, 112.dp, 132.dp, 138.dp, 150.dp)
+    val tableWidth = columnWidths.reduce { total, width -> total + width }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 14.dp, bottom = 18.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Fehlerstatistik", color = WarmYellow, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
+                Text("Gegebene Zeichen und Gruppenabstände: ${state.statistics.totalPresentedItems}", color = Muted, fontSize = 14.sp)
+            }
+            TextButton(onClick = { confirmReset = true }) {
+                Text("Zurücksetzen", color = MorseOrange, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        if (state.message?.startsWith("Statistik") == true) {
+            Text(state.message, color = Color(0xFFFF8A80), fontSize = 13.sp)
+            Spacer(Modifier.height(8.dp))
+        }
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().horizontalScroll(horizontalScroll),
+        ) {
+            Row(Modifier.width(tableWidth).background(PanelBlack)) {
+                StatisticCell("Zeichen", columnWidths[0], header = true)
+                StatisticCell("Morsecode", columnWidths[1], header = true)
+                StatisticCell("Richtig gehört", columnWidths[2], header = true)
+                StatisticCell("Nicht gehört", columnWidths[3], header = true)
+                StatisticCell("Fälschlich gehört", columnWidths[4], header = true)
+            }
+            Divider(color = Muted.copy(alpha = 0.45f))
+            LazyColumn(Modifier.width(tableWidth).weight(1f)) {
+                itemsIndexed(MorseCharacters.all + GroupSpaceCharacter, key = { _, character -> character.id }) { index, character ->
+                    val counts = state.statistics.characters[character.id] ?: CharacterStatistics()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(if (index % 2 == 0) PanelBlack else DeepBlack),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        StatisticCell(character.label, columnWidths[0])
+                        StatisticCell(character.pattern, columnWidths[1])
+                        StatisticCell(counts.correctlyHeard.toString(), columnWidths[2])
+                        StatisticCell(counts.notHeard.toString(), columnWidths[3])
+                        StatisticCell(counts.falselyHeard.toString(), columnWidths[4])
+                    }
+                }
+            }
+        }
+    }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text("Statistik zurücksetzen?") },
+            text = { Text("Alle Zählwerte und eine offene Auswertung werden gelöscht.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    controller.resetStatistics()
+                    confirmReset = false
+                }) { Text("Zurücksetzen", color = MorseOrange) }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Abbrechen", color = SoftYellow) } },
+            backgroundColor = PanelBlack,
+            contentColor = SoftYellow,
+        )
+    }
+}
+
+@Composable
+private fun StatisticCell(text: String, width: androidx.compose.ui.unit.Dp, header: Boolean = false) {
+    Text(
+        text = text,
+        modifier = Modifier.width(width).padding(horizontal = 8.dp, vertical = if (header) 10.dp else 8.dp),
+        color = if (header) WarmYellow else SoftYellow,
+        fontSize = if (header) 12.sp else 14.sp,
+        fontWeight = if (header) FontWeight.SemiBold else FontWeight.Normal,
+        maxLines = 2,
+    )
 }
 
 @Composable

@@ -45,6 +45,7 @@ class TrainerController {
             ?: SavedProfiles()
         val profiles = saved.profiles.ifEmpty { listOf(TrainingProfile(id = "default", name = "Default")) }
         val selection = saved.selectedProfileId.takeIf { id -> profiles.any { it.id == id } } ?: profiles.first().id
+        val statistics = readSavedStatistics()
         val normalized = profiles.map { profile ->
             val safeIds = profile.enabledCharacterIds.filter { id -> MorseCharacters.all.any { it.id == id } }
             profile.copy(
@@ -63,6 +64,28 @@ class TrainerController {
             profiles = normalized,
             selectedProfileId = selection,
             remainingMillis = normalized.first { it.id == selection }.trainingLengthSeconds * 1_000L,
+            statistics = statistics,
+        )
+    }
+
+    private fun readSavedStatistics(): SavedStatistics {
+        val saved = runCatching {
+            loadSavedStatistics()?.let { json.decodeFromString<SavedStatistics>(it) }
+        }.getOrNull() ?: return SavedStatistics()
+        val knownIds = MorseCharacters.all.mapTo(mutableSetOf()) { it.id }.apply {
+            add(GroupSpaceStatisticId)
+        }
+        return SavedStatistics(
+            totalPresentedItems = saved.totalPresentedItems.coerceAtLeast(0L),
+            characters = saved.characters
+                .filterKeys { it in knownIds }
+                .mapValues { (_, counts) ->
+                    counts.copy(
+                        correctlyHeard = counts.correctlyHeard.coerceAtLeast(0L),
+                        notHeard = counts.notHeard.coerceAtLeast(0L),
+                        falselyHeard = counts.falselyHeard.coerceAtLeast(0L),
+                    )
+                },
         )
     }
 
@@ -123,6 +146,10 @@ class TrainerController {
 
     fun toggleScreen() {
         _state.update { it.copy(screen = if (it.screen == TrainerScreen.Training) TrainerScreen.Settings else TrainerScreen.Training) }
+    }
+
+    fun showStatistics() {
+        _state.update { it.copy(screen = TrainerScreen.Statistics) }
     }
 
     fun selectProfile(profileId: String) {
@@ -284,6 +311,93 @@ class TrainerController {
         runCatching { saveProfiles(json.encodeToString(SavedProfiles(selectedId, profiles))) }
     }
 
+    fun markReviewAsNotHeard(index: Int) {
+        updateReviewEntry(index) { it.copy(heardCharacterId = null) }
+    }
+
+    fun markReviewAsHeard(index: Int, heardCharacterId: String) {
+        if (heardCharacterId != GroupSpaceStatisticId && MorseCharacters.all.none { it.id == heardCharacterId }) return
+        updateReviewEntry(index) { it.copy(heardCharacterId = heardCharacterId) }
+    }
+
+    fun discardReview() {
+        _state.update {
+            it.copy(
+                pendingReview = null,
+                transmittedCharacters = emptyList(),
+                visibleTranscript = it.transcript,
+                message = null,
+            )
+        }
+    }
+
+    private fun updateReviewEntry(index: Int, update: (TrainingReviewEntry) -> TrainingReviewEntry) {
+        _state.update { current ->
+            val review = current.pendingReview ?: return@update current
+            if (index !in review.indices) return@update current
+            current.copy(pendingReview = review.toMutableList().also { it[index] = update(it[index]) })
+        }
+    }
+
+    fun commitReview() {
+        val current = _state.value
+        val review = current.pendingReview ?: return
+        val counts = current.statistics.characters.toMutableMap()
+        fun changeCount(characterId: String, change: (CharacterStatistics) -> CharacterStatistics) {
+            counts[characterId] = change(counts[characterId] ?: CharacterStatistics())
+        }
+
+        review.forEach { entry ->
+            when (val heardId = entry.heardCharacterId) {
+                entry.emittedCharacterId -> changeCount(entry.emittedCharacterId) {
+                    it.copy(correctlyHeard = it.correctlyHeard + 1L)
+                }
+                null -> changeCount(entry.emittedCharacterId) {
+                    it.copy(notHeard = it.notHeard + 1L)
+                }
+                else -> {
+                    changeCount(entry.emittedCharacterId) { it.copy(notHeard = it.notHeard + 1L) }
+                    changeCount(heardId) { it.copy(falselyHeard = it.falselyHeard + 1L) }
+                }
+            }
+        }
+
+        val updatedStatistics = SavedStatistics(
+            totalPresentedItems = current.statistics.totalPresentedItems + review.size,
+            characters = counts,
+        )
+        val saved = runCatching {
+            saveStatistics(json.encodeToString(updatedStatistics))
+        }.isSuccess
+        if (!saved) {
+            _state.update { it.copy(message = "Statistik konnte nicht gespeichert werden") }
+            return
+        }
+        _state.update {
+            if (it.pendingReview == review) it.copy(statistics = updatedStatistics, pendingReview = null, message = null)
+            else it
+        }
+    }
+
+    fun resetStatistics() {
+        val emptyStatistics = SavedStatistics()
+        val saved = runCatching { saveStatistics(json.encodeToString(emptyStatistics)) }.isSuccess
+        if (!saved) {
+            _state.update { it.copy(message = "Statistik konnte nicht zurückgesetzt werden") }
+            return
+        }
+        _state.update {
+            it.copy(
+                statistics = emptyStatistics,
+                pendingReview = null,
+                transcript = "",
+                visibleTranscript = null,
+                transmittedCharacters = emptyList(),
+                message = null,
+            )
+        }
+    }
+
     fun startOrResume() {
         if (_state.value.previewing || previewJob?.isActive == true) return
         when (_state.value.status) {
@@ -315,6 +429,8 @@ class TrainerController {
                 startDelayRemainingMillis = startDelayMillis,
                 transcript = "",
                 visibleTranscript = null,
+                transmittedCharacters = emptyList(),
+                pendingReview = null,
                 message = if (startDelayMillis > 0L) "Morsen startet" else "Training läuft",
             )
         }
@@ -386,6 +502,7 @@ class TrainerController {
             while (true) {
                 if (!firstGroup) {
                     if (!controlledGap(profile.pauseBetweenGroups * dotMillis)) return
+                    appendGroupSeparator()
                 }
                 firstGroup = false
                 val groupSize = Random.nextInt(profile.wordLengthMin, profile.wordLengthMax + 1)
@@ -414,8 +531,25 @@ class TrainerController {
 
     private fun appendTranscript(character: MorseCharacter, startsGroup: Boolean) {
         _state.update { current ->
-            val next = current.transcript + (if (startsGroup) "  " else "") + character.label
-            current.copy(transcript = next)
+            current.copy(
+                transcript = current.transcript + character.label,
+                transmittedCharacters = current.transmittedCharacters + TrainingReviewEntry(
+                    emittedCharacterId = character.id,
+                    startsGroup = startsGroup,
+                ),
+            )
+        }
+    }
+
+    private fun appendGroupSeparator() {
+        _state.update { current ->
+            current.copy(
+                transcript = current.transcript + "  ",
+                transmittedCharacters = current.transmittedCharacters + TrainingReviewEntry(
+                    emittedCharacterId = GroupSpaceStatisticId,
+                    startsGroup = false,
+                ),
+            )
         }
     }
 
@@ -509,6 +643,7 @@ class TrainerController {
                 status = status,
                 startDelayRemainingMillis = 0,
                 visibleTranscript = it.transcript,
+                pendingReview = it.transmittedCharacters.takeIf { characters -> characters.isNotEmpty() },
                 message = message,
             )
         }

@@ -36,6 +36,12 @@ actual fun saveProfiles(data: String) {
     profilePreferences.put("profiles", data)
 }
 
+actual fun loadSavedStatistics(): String? = profilePreferences.get("statistics", null)
+
+actual fun saveStatistics(data: String) {
+    profilePreferences.put("statistics", data)
+}
+
 actual suspend fun openAudioOutput() = withContext(Dispatchers.IO) {
     synchronized(audioLineLock) {
         if (audioLine?.isOpen != true) {

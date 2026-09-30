@@ -51,6 +51,16 @@ actual fun saveProfiles(data: String) {
         .edit().putString("profiles", data).apply()
 }
 
+actual fun loadSavedStatistics(): String? =
+    AndroidProfileStorage.context.getSharedPreferences("cw-trainer", Context.MODE_PRIVATE)
+        .getString("statistics", null)
+
+actual fun saveStatistics(data: String) {
+    val saved = AndroidProfileStorage.context.getSharedPreferences("cw-trainer", Context.MODE_PRIVATE)
+        .edit().putString("statistics", data).commit()
+    check(saved) { "Statistik konnte nicht gespeichert werden" }
+}
+
 actual suspend fun openAudioOutput() = withContext(Dispatchers.IO) {
     synchronized(audioTrackLock) {
         if (audioTrack?.state != AudioTrack.STATE_INITIALIZED) {

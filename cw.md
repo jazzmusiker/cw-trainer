@@ -124,16 +124,39 @@ Nachfolgend beschrieben werden 2. Verfahren
 - Wenn die Punktdauer keine ganze Millisekundenzahl ergibt, soll wie in verfahren 1 auf ganze Millisekunden abgeschnitten werden.
 
 
-#Statistik (noch nicht umsetzen, unklar wie der Lernende seine Rückmeldung eingibt)
+#Statistik
+
 - Die Statistik soll global, nicht als Profil gespeichert werden
-- Anzeige einer Statistik der Fehlerquote der Zeichen (zusätzlicher Button in Header Zeile)
-- Die Statistik Ansicht beinhaltet ein Button zum Zurücksetzen der Statistik
+- Anzeige einer Fehlerstatistik der Zeichen (zusätzlicher Button in Header Zeile wie einstellungen und training )
+- Die Statistik Ansicht beinhaltet einen Button zum Zurücksetzen der Statistik
 - Angezeigt wird eine Tabelle
   * 1. Spalte das zu morsende Zeichen
   * 2. Spalte Die Darstellung des Zeichens als Morsecode
   * 3. Spalte Anzahl wie oft das Zeichen richtig gehört wurde
   * 4. Spalte Anzahl wie oft das Zeichen nicht gehört wurde
   * 5. Spalte Anzahl wie oft das Zeichen fälschlicherweise gehört wurde, obwohl ein anderes Zeichen ausgegeben wurde.
-
+- Zusätzlich zu den Morsezeichen gibt es eine Zeile `␠` für den Gruppenabstand. In der Morsecode-Spalte steht dafür „Gruppenabstand“.
+- Die Gesamtzahl umfasst vollständig ausgegebene Zeichen und vollständig ausgegebene Gruppenabstände.
+- Fehlerstatistik: In jeder Zeile steht, wie oft die Position nicht gehört bzw. fälschlicherweise als ein anderes Zeichen oder als Gruppenabstand gehört wurde.
+- Wenn A gesendet wird und B eingegeben bzw. gehört wurde werden beide Buchstaben als Fehler gezählt, A als nicht gehört und B als fälschlicherweise gehört.
+- Gruppenabstände werden im ausgegebenen Text sichtbar mit `␠` dargestellt und sind wie Zeichen einzeln auswählbar. Ein Zeichen kann als `␠` markiert werden; ein Gruppenabstand kann als nicht gehört oder als ein bestimmtes Morsezeichen markiert werden.
+- Ein Gruppenabstand wird als vollständig ausgegeben gewertet, sobald die Pause zwischen zwei Gruppen vollständig abgelaufen ist.
+- Es sollen alle verfügbaren Zeichen angezeigt werden
+- Die Rückmeldung des Lernenden soll nach dem Training erfolgen wenn der gesendete Text ausgegeben wurde und zwar so funktionieren, daß man bei den ausgegebenen text falsche Zeichen markieren kann. 
+- nicht markierte Zeichen gelten als richtig
+- die Statistik übersteh einen app-neustart
+- Nur vollständig ausgegebene Zeichen und vollständig abgelaufene Gruppenabstände werden in die Statistik aufgenommen.
+- Nach Stopp oder Trainingsende den Text als einzelne auswählbare Zeichen und Gruppenabstände anzeigen. Jede Gruppe steht in einer eigenen Zeile; lange Gruppen sind horizontal scrollbar. Wiederholte Zeichen müssen jeweils einzeln auswählbar sein.
+- Jede Stelle ist zunächst als richtig gewertet. Beim Antippen kann der Lernende „Nicht gehört“ wählen oder angeben, welches andere Zeichen er gehört hat.
+- Richtige Stellen werden grün angezeigt. Falsche Stellen werden rot angezeigt; bei einer gehörten Alternative wird das gehörte Zeichen eingeblendet.
+- Eine gehörte Alternative wird aus der Zeichenliste ausgewählt, einschließlich der Prosigns. Bei `A → B` erhöht die Übernahme „nicht gehört“ für `A` und „fälschlich gehört“ für `B`.
+- Mit **„Auswertung übernehmen“** werden die Ergebnisse einmalig gespeichert. Der Gesamtzähler erhöht sich für jede vollständig ausgegebene Zeichen- oder Gruppenabstandsposition um eins.
+- **„Ausgaben verwerfen“** verwirft die offene Auswertung ohne Änderungen an der Statistik.
+- Es sollen reine Zählwerte, keine Prozente angezeigt werden
+- Zurücksetzen: Alle Zeichenwerte und Gesamtzähler wird gelöscht
+- App-Neustart während der Auswertung: Die Statistik bleibt erhalten, nicht übernommene Auswertung mit Text und Markierungen geht verloren
+-   Die Ergebnisse jeder übernommenen Auswertung werden zu den bisherigen Statistikwerten addiert. 
+- Zurücksetzen verwirft eine noch nicht übernommene Auswertung
+ Eine offene Auswertung wird beim Start eines neuen Trainings verworfen
 
 Rein informativ: codex resume 01a0ecb3-136a-7c43-a153-82b4c7bdcc01
