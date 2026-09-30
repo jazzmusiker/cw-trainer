@@ -11,6 +11,7 @@ data class TrainingProfile(
     val wordLengthMin: Int = 1,
     val wordLengthMax: Int = 5,
     val trainingLengthSeconds: Int = 30,
+    val pauseBeforeStartSeconds: Int = 0,
     val frequencyHz: Double = 600.0,
     val pauseBetweenCharacters: Int = 3,
     val pauseBetweenGroups: Int = 7,
@@ -63,7 +64,7 @@ object MorseCharacters {
 }
 
 enum class TrainerScreen { Training, Settings }
-enum class TrainingStatus { Idle, Playing, Paused, Stopped, Finished }
+enum class TrainingStatus { Idle, Starting, Playing, Paused, Stopped, Finished }
 
 data class TrainerUiState(
     val profiles: List<TrainingProfile>,
@@ -71,6 +72,8 @@ data class TrainerUiState(
     val screen: TrainerScreen = TrainerScreen.Training,
     val status: TrainingStatus = TrainingStatus.Idle,
     val remainingMillis: Long = 30_000,
+    val startDelayRemainingMillis: Long = 0,
+    val previewing: Boolean = false,
     val transcript: String = "",
     val visibleTranscript: String? = null,
     val message: String? = null,

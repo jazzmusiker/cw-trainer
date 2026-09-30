@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +27,7 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.CheckboxDefaults
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Slider
@@ -101,7 +101,7 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
     var profileMenuExpanded by remember { mutableStateOf(false) }
     var showAddProfile by remember { mutableStateOf(false) }
     val destinationLabel = if (state.screen == TrainerScreen.Training) "⋮  Einstellungen" else "▶  Training"
-    val canChangeProfiles = state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
+    val canChangeProfiles = state.status != TrainingStatus.Starting && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
 
     BoxWithConstraints(
         modifier = Modifier
@@ -349,9 +349,11 @@ private fun RenameProfileDialog(
 
 @Composable
 private fun TrainingScreen(state: TrainerUiState, controller: TrainerController) {
+    val starting = state.status == TrainingStatus.Starting
     val active = state.status == TrainingStatus.Playing
     val paused = state.status == TrainingStatus.Paused
     val hasTranscript = state.visibleTranscript != null
+    val startSeconds = ceil(state.startDelayRemainingMillis.coerceAtLeast(0L) / 1_000.0).toLong()
     val remainingSeconds = ceil(state.remainingMillis.coerceAtLeast(0L) / 1_000.0).toLong()
     val minutes = remainingSeconds / 60
     val seconds = remainingSeconds % 60
@@ -359,14 +361,14 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = 20.dp)
+            .padding(top = 6.dp, bottom = 24.dp),
+        contentAlignment = Alignment.TopCenter,
     ) {
         val maxPanelWidth = if (maxWidth > 850.dp) 760.dp else maxWidth
         Column(
-            modifier = Modifier.width(maxPanelWidth).fillMaxHeight(),
+            modifier = Modifier.width(maxPanelWidth),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -383,6 +385,10 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
                     Text("${state.selectedProfile.speedWpm} WPM", color = Muted, fontSize = 14.sp)
                     Spacer(Modifier.height(8.dp))
                     when {
+                        starting -> {
+                            Text("${startSeconds}s", color = WarmYellow, fontSize = 32.sp, fontWeight = FontWeight.Light)
+                            Text("bis zum Start", color = Muted, fontSize = 14.sp)
+                        }
                         active || paused -> {
                             Text("$minutes:${seconds.toString().padStart(2, '0')}", color = WarmYellow, fontSize = 32.sp, fontWeight = FontWeight.Light)
                             Text("verbleibende Zeit", color = Muted, fontSize = 14.sp)
@@ -417,14 +423,14 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
                 ControlButton(
                     symbol = "■",
                     label = "Stopp",
-                    enabled = active || paused || hasTranscript,
+                    enabled = starting || active || paused || hasTranscript,
                     primary = false,
                     onClick = controller::requestStop,
                 )
                 ControlButton(
                     symbol = "▶",
                     label = if (paused) "Fortsetzen" else "Start",
-                    enabled = !active,
+                    enabled = !active && !starting && !state.previewing,
                     primary = true,
                     onClick = controller::startOrResume,
                 )
@@ -432,6 +438,7 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
             }
 
             when {
+                starting -> StatusText(text = "Morsen startet in ${startSeconds}s")
                 active -> StatusText(text = "Training läuft · ${remainingSeconds}s verbleiben")
                 paused -> StatusText(text = "Training pausiert · ${remainingSeconds}s verbleiben")
                 state.message?.startsWith("Audioausgabe") == true -> StatusText(text = state.message.orEmpty())
@@ -495,7 +502,7 @@ private fun TranscriptPanel(transcript: String) {
 @Composable
 private fun SettingsScreen(state: TrainerUiState, controller: TrainerController) {
     val profile = state.selectedProfile
-    val canDeleteProfile = state.profiles.size > 1 && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
+    val canDeleteProfile = state.profiles.size > 1 && state.status != TrainingStatus.Starting && state.status != TrainingStatus.Playing && state.status != TrainingStatus.Paused
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 18.dp),
@@ -560,16 +567,36 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
         }
         item {
             SettingSlider(
-                title = "Tonhöhe",
-                valueLabel = "${(profile.frequencyHz * 10.0).roundToInt() / 10.0} Hz",
-                value = profile.frequencyHz.toFloat(),
-                range = 100f..2_000f,
-                steps = 0,
-                onValueChange = { value ->
-                    val frequency = (value * 10f).roundToInt() / 10.0
-                    controller.updateProfile { it.copy(frequencyHz = frequency) }
-                },
+                title = "Pause vor Trainingsstart",
+                valueLabel = "${profile.pauseBeforeStartSeconds} s",
+                value = profile.pauseBeforeStartSeconds.toFloat(),
+                range = 0f..5f,
+                steps = 4,
+                onValueChange = { value -> controller.updateProfile { it.copy(pauseBeforeStartSeconds = value.toInt()) } },
             )
+        }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SettingSlider(
+                    modifier = Modifier.weight(1f),
+                    title = "Tonhöhe",
+                    valueLabel = "${(profile.frequencyHz * 10.0).roundToInt() / 10.0} Hz",
+                    value = profile.frequencyHz.toFloat(),
+                    range = 100f..2_000f,
+                    steps = 0,
+                    onValueChange = { value ->
+                        val frequency = (value * 10f).roundToInt() / 10.0
+                        controller.updateProfile { it.copy(frequencyHz = frequency) }
+                    },
+                )
+                IconButton(
+                    onClick = controller::previewCqTest,
+                    enabled = !state.previewing && state.status !in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused),
+                    modifier = Modifier.padding(start = 8.dp).size(56.dp),
+                ) {
+                    Text("🔊", fontSize = 36.sp)
+                }
+            }
         }
         item {
             SettingSlider(
@@ -629,6 +656,7 @@ private fun SectionTitle(text: String) {
 
 @Composable
 private fun SettingSlider(
+    modifier: Modifier = Modifier,
     title: String,
     valueLabel: String,
     value: Float,
@@ -637,7 +665,7 @@ private fun SettingSlider(
     onValueChange: (Float) -> Unit,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(PanelBlack, RoundedCornerShape(14.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
