@@ -235,4 +235,5 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 - Desktop starten: `./gradlew :desktopApp:run`
 - Android-Debugversion installieren: `./gradlew :androidApp:installDebug`
 - Debug-APK erzeugen und Speicherort ausgeben: `./build.android.sh`
+- Debug-APK erzeugen und per ADB installieren: `./build_install_android.sh`. Bei genau einem verfügbaren Gerät wird direkt installiert; bei mehreren Geräten fragt das Skript nach dem Zielgerät.
 - Die APK wird unter `androidApp/build/outputs/apk/` erzeugt.

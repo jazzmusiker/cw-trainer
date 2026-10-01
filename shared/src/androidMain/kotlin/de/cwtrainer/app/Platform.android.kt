@@ -146,7 +146,7 @@ actual fun closeAudioOutput() {
 private fun createToneSamples(frequencyHz: Double, durationMillis: Long): ShortArray {
     val sampleCount = (ToneSampleRate * durationMillis / 1_000L).toInt().coerceAtLeast(1)
     return ShortArray(sampleCount) { index ->
-        val envelope = if (index < 96 || index >= sampleCount - 96) 0.72 else 1.0
+        val envelope = if (index < 96 || index >= sampleCount - 96) 0.5 else 1.0
         (sin(2.0 * PI * frequencyHz * index / ToneSampleRate) * Short.MAX_VALUE * envelope)
             .toInt().toShort()
     }

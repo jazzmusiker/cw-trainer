@@ -102,4 +102,12 @@ Eine Debug-APK bauen und ihren Pfad ausgeben:
 ./build.android.sh
 ```
 
+Eine Debug-APK bauen und auf einem verbundenen Gerät installieren:
+
+```sh
+./build_install_android.sh
+```
+
+Bei genau einem verfügbaren Gerät installiert das Skript direkt. Bei mehreren Geräten fragt es nach der Gerätenummer.
+
 Die APK liegt unter `androidApp/build/outputs/apk/`.
