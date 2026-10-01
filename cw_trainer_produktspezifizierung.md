@@ -17,7 +17,7 @@ Dieses Dokument beschreibt den aktuellen Funktionsumfang und das Verhalten der A
 - Dunkler bis schwarzer Hintergrund, gelbe beziehungsweise cremefarbene Texte, orangefarbener Header und orangefarbene Hervorhebungen.
 - Farbpalette: Hintergrund `#090909`, Karten `#151515`, Hauptgelb `#FFD54F`, helles Gelb `#F4E7B0`, Orange `#F29A38`, zurückhaltender Text `#AAA28A`.
 - Header: oranger Hintergrund mit schwarzem Text. Er enthält den Titel **CW-Trainer**, Profilwahl, **+ Profil**, Navigation zu Einstellungen oder Training sowie die Navigation zur Statistik.
-- Der Header hat 18 dp horizontale und 12 dp vertikale Innenabstände. Unter 620 dp verfügbarer Breite werden Profilwahl und Profilerstellung in eine zweite Headerzeile gesetzt.
+- Der Header hat 18 dp horizontale Innenabstände, 4 dp oberen und 12 dp unteren Innenabstand. Unter 620 dp verfügbarer Breite werden Profilwahl und Profilerstellung mit 4 dp Abstand zur Titelzeile in eine zweite Headerzeile gesetzt.
 - Content-Bereich und Header sind vertikal mit kleinem Abstand angeordnet.
 - Die Trainingsansicht erhält 20 dp horizontale Innenabstände und beginnt 6 dp unterhalb des Headers. Bei breiten Ansichten wird der zentrale Inhaltsbereich auf 760 dp begrenzt.
 
@@ -36,15 +36,16 @@ Dieses Dokument beschreibt den aktuellen Funktionsumfang und das Verhalten der A
 
 ### Trainingsansicht
 
-- Statuskarte mit Überschrift **HÖRGENAUIGKEIT TRAINIEREN**, eingestelltem WPM-Wert und abhängig vom Zustand:
+- Oberhalb des Inhaltsbereichs liegt ein Abstand von 24 dp. Die Statuskarte zeigt den eingestellten WPM-Wert und abhängig vom Zustand:
   - vor dem Start: Countdown und „bis zum Start“;
   - während Training oder Pause: Restzeit im Format `m:ss` und „verbleibende Zeit“;
   - im Leerlauf bzw. nach Ende: Bereit-, beendet- oder gestoppt-Status.
 - Countdown und Restzeit werden mit 32 sp dargestellt.
-- Runde Bedienelemente **Stopp**, **Start/Fortsetzen** und **Pause** mit Quadrat-, Play- und Pause-Symbol.
-- Die drei Bedienelemente sind 68 dp groß und haben 22 dp Abstand zueinander.
+- Unter der Statuskarte folgt nach 16 dp eine eigene Karte mit den runden Bedienelementen **Stopp**, **Start/Fortsetzen** und **Pause** sowie Quadrat-, Play- und Pause-Symbol.
+- Die drei Bedienelemente sind 68 dp groß und haben 22 dp Abstand zueinander. Die Bedienelementkarte hat zusätzlich 8 dp vertikalen Innenabstand.
+- Nach der Bedienelementkarte folgt mit 16 dp Abstand der Status- oder Meldungstext.
 - Während einer Audio- oder Statistikfehlermeldung wird diese unter den Bedienelementen angezeigt.
-- Nach abgeschlossener bzw. gestoppter Aussendung wird die Auswertung angezeigt. Wenn keine Auswertung offen ist, aber ein Text sichtbar ist, wird dieser als statischer Text angezeigt.
+- Nach abgeschlossener bzw. gestoppter Aussendung wird die Auswertung in einer Karte angezeigt, die den verbleibenden vertikalen Platz einnimmt. Ihre Positionsliste ist vertikal scrollbar; Gruppenzeilen können horizontal gescrollt werden. Wenn keine Auswertung offen ist, aber ein Text sichtbar ist, wird dieser als statischer Text angezeigt.
 
 ## 3. Profile
 
@@ -186,6 +187,7 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 - Ein Gruppenabstand wird nicht hinzugefügt, wenn die Pause vorzeitig durch Stopp oder Trainingsende unterbrochen wurde.
 - Der aufgezeichnete Text trennt Gruppen mit zwei Leerzeichen; in der statischen Textansicht werden diese als `␠` sichtbar gemacht.
 - Die Reviewtokens sind anklickbare Karten. Richtige Positionen erscheinen grün. Falsche sowie nicht gehörte Positionen erscheinen rot. Eine falsche Alternative wird unter der ausgesendeten Position ohne den Zusatz „Gehört:“ angezeigt; eine nicht gehörte Position zeigt „Nicht gehört“.
+- Über der Auswertebox steht die Überschrift **Auswertung**. Darunter stehen nebeneinander die Buttons **Übernehmen** und **Verwerfen**; die Liste mit den auswählbaren Positionen belegt den verbleibenden Platz und ist scrollbar.
 
 ### Antwortdialog
 
@@ -195,8 +197,8 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
   2. **Nicht gehört** – markiert die ausgesendete Position als nicht gehört.
   3. Eine Alternative aus der Zeichenliste einschließlich Prosigns auswählen. Für ein Morsezeichen gehört die Alternative `␠` ebenfalls zur Auswahl. Für einen Gruppenabstand kann jedes Morsezeichen als gehörte Alternative gewählt werden.
 - Ausgegebene Zeichen und Positionen der Rückmeldung werden unabhängig voneinander bewertet.
-- **Auswertung übernehmen** speichert die Auswertung genau einmal und addiert ihre Ergebnisse global zur Statistik.
-- **Ausgaben verwerfen** schließt die offene Rückmeldung ohne Statistikänderung. Der ausgegebene Text bleibt danach statisch sichtbar.
+- **Übernehmen** speichert die Auswertung genau einmal und addiert ihre Ergebnisse global zur Statistik.
+- **Verwerfen** schließt die offene Rückmeldung ohne Statistikänderung. Der ausgegebene Text bleibt danach statisch sichtbar.
 - Wird die App während einer offenen Auswertung neu gestartet, bleiben gespeicherte Statistiken erhalten; Text und noch nicht übernommene Markierungen gehen verloren.
 - Ein neuer Trainingsstart und das Zurücksetzen der Statistik verwerfen ebenfalls eine offene Auswertung.
 

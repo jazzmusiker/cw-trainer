@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -117,10 +118,10 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
         modifier = Modifier
             .fillMaxWidth()
             .background(MorseOrange)
-            .padding(horizontal = 18.dp, vertical = 12.dp)
+            .padding(start = 18.dp, top = 4.dp, end = 18.dp, bottom = 12.dp)
     ) {
         if (maxWidth < 620.dp) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "CW-Trainer",
@@ -390,6 +391,7 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
             modifier = Modifier.width(maxPanelWidth),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 backgroundColor = PanelBlack,
@@ -397,11 +399,9 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
                 elevation = 0.dp,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 30.dp),
+                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("HÖRGENAUIGKEIT TRAINIEREN", color = MorseOrange, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
-                    Spacer(Modifier.height(12.dp))
                     Text("${state.selectedProfile.speedWpm} WPM", color = Muted, fontSize = 14.sp)
                     Spacer(Modifier.height(8.dp))
                     when {
@@ -425,38 +425,52 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
                                 fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center,
                             )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Zufällige Zeichen werden als Morsecode abgespielt.",
-                                color = Muted,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center,
-                            )
                         }
                     }
                 }
             }
 
-            Spacer(Modifier.height(26.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
-                ControlButton(
-                    symbol = "■",
-                    label = "Stopp",
-                    enabled = starting || active || paused || hasTranscript,
-                    primary = false,
-                    onClick = controller::requestStop,
-                )
-                ControlButton(
-                    symbol = "▶",
-                    label = if (paused) "Fortsetzen" else "Start",
-                    enabled = !active && !starting && !state.previewing,
-                    primary = true,
-                    onClick = controller::startOrResume,
-                )
-                ControlButton(symbol = "Ⅱ", label = "Pause", enabled = active, primary = false, onClick = controller::requestPause)
+            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = PanelBlack,
+                shape = RoundedCornerShape(24.dp),
+                elevation = 0.dp,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth().padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                )  {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(22.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ControlButton(
+                            symbol = "■",
+                            label = "Stopp",
+                            enabled = starting || active || paused || hasTranscript,
+                            primary = false,
+                            onClick = controller::requestStop,
+                        )
+                        ControlButton(
+                            symbol = "▶",
+                            label = if (paused) "Fortsetzen" else "Start",
+                            enabled = !active && !starting && !state.previewing,
+                            primary = true,
+                            onClick = controller::startOrResume,
+                        )
+                        ControlButton(
+                            symbol = "Ⅱ",
+                            label = "Pause",
+                            enabled = active,
+                            primary = false,
+                            onClick = controller::requestPause
+                        )
+                    }
+                }
             }
-
+            Spacer(Modifier.height(16.dp))
             when {
                 starting -> StatusText(text = "Morsen startet in ${startSeconds}s")
                 active -> StatusText(text = "Training läuft · ${remainingSeconds}s verbleiben")
@@ -524,7 +538,7 @@ private fun TranscriptPanel(transcript: String) {
 }
 
 @Composable
-private fun TranscriptReviewPanel(entries: List<TrainingReviewEntry>, controller: TrainerController) {
+private fun ColumnScope.TranscriptReviewPanel(entries: List<TrainingReviewEntry>, controller: TrainerController) {
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     val groups = remember(entries) {
         val result = mutableListOf<MutableList<Pair<Int, TrainingReviewEntry>>>()
@@ -536,29 +550,38 @@ private fun TranscriptReviewPanel(entries: List<TrainingReviewEntry>, controller
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().weight(1f),
         backgroundColor = PanelBlack,
         shape = RoundedCornerShape(16.dp),
         elevation = 0.dp,
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "AUSGABE AUSWERTEN",
+        Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp,top = 8.dp,bottom = 2.dp)) {
+            Text("Auswertung", color = MorseOrange, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(
+                    onClick = controller::commitReview,
                     modifier = Modifier.weight(1f),
-                    color = MorseOrange,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                )
-                TextButton(onClick = controller::discardReview) {
-                    Text("Ausgaben verwerfen", color = Color(0xFFFF8A80), fontSize = 11.sp)
+                    colors = ButtonDefaults.buttonColors(backgroundColor = MorseOrange, contentColor = Color.Black),
+                ) {
+                    Text("Übernehmen", fontWeight = FontWeight.SemiBold)
+                }
+                Button(
+                    onClick = controller::discardReview,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF542D2D), contentColor = SoftYellow),
+                ) {
+                    Text("Verwerfen", fontWeight = FontWeight.SemiBold)
                 }
             }
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text("Tippe Zeichen oder Gruppenabstände an, die du nicht oder anders gehört hast.", color = Muted, fontSize = 13.sp)
             Spacer(Modifier.height(10.dp))
-            LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 itemsIndexed(groups) { _, group ->
                     Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -569,14 +592,6 @@ private fun TranscriptReviewPanel(entries: List<TrainingReviewEntry>, controller
                         }
                     }
                 }
-            }
-            Spacer(Modifier.height(10.dp))
-            Button(
-                onClick = controller::commitReview,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(backgroundColor = MorseOrange, contentColor = Color.Black),
-            ) {
-                Text("Auswertung übernehmen", fontWeight = FontWeight.SemiBold)
             }
         }
     }

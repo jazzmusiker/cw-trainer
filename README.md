@@ -10,7 +10,7 @@ Die Anwendung läuft auf Android sowie als Desktop-Anwendung unter macOS und Lin
 2. Öffne **„Einstellungen“**, wähle die Morsezeichen und passe bei Bedarf Geschwindigkeit, Gruppengröße, Trainingsdauer und Ton an.
 3. Gehe zurück zu **„Training“** und drücke **Start**.
 4. Höre die Ausgabe. Nach Trainingsende oder Stopp erscheint die Auswertung. Tippe Positionen an, die du falsch oder nicht gehört hast.
-5. Drücke **„Auswertung übernehmen“**, um die Ergebnisse zur Statistik hinzuzufügen. Mit **„Ausgaben verwerfen“** schließt du die Auswertung ohne Statistikänderung.
+5. Drücke **„Übernehmen“**, um die Ergebnisse zur Statistik hinzuzufügen. Mit **„Verwerfen“** schließt du die Auswertung ohne Statistikänderung.
 
 ## Navigation und Profile
 
@@ -62,7 +62,7 @@ Jede Position gilt zunächst als richtig. Tippe eine Position an, um eine der fo
 
 Korrekte Positionen erscheinen grün. Falsche und nicht gehörte Positionen erscheinen rot. Bei einer falschen Alternative steht das gehörte Zeichen unter dem gesendeten Zeichen; der Gruppenabstand wird als `␠` dargestellt.
 
-Mit **„Auswertung übernehmen“** speicherst du die Rückmeldung einmalig. Der Gesamtzähler steigt für jede vollständig ausgegebene Zeichen- oder Gruppenabstandsposition um eins. Mit **„Ausgaben verwerfen“** wird die offene Rückmeldung nicht gespeichert; der ausgegebene Text bleibt anschließend sichtbar. Wenn du die App während einer offenen Auswertung schließt oder ein neues Training startest, geht die nicht übernommene Auswertung verloren.
+Über **„Übernehmen“** speicherst du die Rückmeldung einmalig. Der Gesamtzähler steigt für jede vollständig ausgegebene Zeichen- oder Gruppenabstandsposition um eins. **„Verwerfen“** schließt die offene Rückmeldung ohne Statistikänderung; der ausgegebene Text bleibt anschließend sichtbar. Wenn du die App während einer offenen Auswertung schließt oder ein neues Training startest, geht die nicht übernommene Auswertung verloren.
 
 ## Statistik
 
