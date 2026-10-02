@@ -16,7 +16,8 @@ Dieses Dokument beschreibt den aktuellen Funktionsumfang und das Verhalten der A
 
 - Dunkler bis schwarzer Hintergrund, gelbe beziehungsweise cremefarbene Texte, orangefarbener Header und orangefarbene Hervorhebungen.
 - Farbpalette: Hintergrund `#090909`, Karten `#151515`, Hauptgelb `#FFD54F`, helles Gelb `#F4E7B0`, Orange `#F29A38`, zurückhaltender Text `#AAA28A`.
-- Header: oranger Hintergrund mit schwarzem Text. Er enthält den Titel **CW-Trainer**, Profilwahl, **+ Profil**, Navigation zu Einstellungen oder Training sowie die Navigation zur Statistik.
+- Android-Launcher-Icon: dunkler Grund mit einem groß dargestellten, gut erkennbaren menschlichen Ohr in dunkleren Graustufen. Darüber liegen kräftige gelbe Morsezeichen für **W**, **P** und **M** (`.--`, `.--.`, `--`). Der gelbe Schriftzug **CW** steht oberhalb der Morsezeichen, **WPM** darunter; die Überlagerung darf das Ohr teilweise verdecken.
+- Header: oranger Hintergrund mit schwarzem Text. Unter dem Titel **CW-Trainer** steht die Versionsnummer in kleiner Schrift. Der Header enthält außerdem Profilwahl, **+ Profil**, Navigation zu Einstellungen oder Training sowie die Navigation zur Statistik.
 - Der Header hat 18 dp horizontale Innenabstände, 4 dp oberen und 12 dp unteren Innenabstand. Unter 620 dp verfügbarer Breite werden Profilwahl und Profilerstellung mit 4 dp Abstand zur Titelzeile in eine zweite Headerzeile gesetzt.
 - Content-Bereich und Header sind vertikal mit kleinem Abstand angeordnet.
 - Die Trainingsansicht erhält 20 dp horizontale Innenabstände und beginnt 6 dp unterhalb des Headers. Bei breiten Ansichten wird der zentrale Inhaltsbereich auf 760 dp begrenzt.
@@ -119,8 +120,9 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 | - | `-....-` | : | `---...` | / | `-..-.` |
 | = | `-...-` | ? | `..--..` | ! | `-.-.--` |
 | ; | `-.-.-.` | ( | `-.--.` | ) | `-.--.-` |
-| `<KA>` | `-.-.-` | `<SK>` | `...-.-` | `<AR>` | `.-.-.` |
-| `<BT>` | `-...-` | `<KN>` | `-.--.` | `<HH>` | `........` |
+| `<AS>` | `.-...` | `<VE>` | `...-.` | `<KA>` | `-.-.-` |
+| `<SK>` | `...-.-` | `<AR>` | `.-.-.` | `<BT>` | `-...-` |
+| `<KN>` | `-.--.` | `<HH>` | `........` |  |  |
 
 ## 6. Aussendung und Trainingssteuerung
 
@@ -161,7 +163,7 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 - Punkt- und Strichsamples haben die oben definierten Morsezeiten. Die Punktdauer wird auf ganze Millisekunden abgeschnitten.
 - Für jedes Zeichen werden Punkt-/Strichsamples und die internen Stilleintervalle (je eine Punktlänge) zu einem PCM-Audioblock zusammengesetzt. Es gibt keine Tonwiedergabe während der Zeichen- und Gruppenpausen; diese werden separat zeitgesteuert.
 - Die Wiedergabefunktion kehrt erst zurück, wenn der vollständige Block abgespielt wurde.
-- Android verwendet eine gestreamte Mono-PCM-Audioausgabe. Nichtblockierendes Schreiben und Wiedergabefortschritt werden überwacht. Ein Fehler wird einmal durch Schließen und erneutes Öffnen der Ausgabe mit anschließendem Wiedergabeversuch wiederholt. Für Schreiben und Abspielen gilt eine Frist aus Blockdauer plus zwei Sekunden. Ein nicht behebbarer Fehler beendet das Training mit einer Fehlermeldung.
+- Android verwendet eine gestreamte Mono-PCM-Audioausgabe. Nichtblockierendes Schreiben und Wiedergabefortschritt werden überwacht. Ein Fehler wird einmal durch Schließen und erneutes Öffnen der Ausgabe mit anschließendem Wiedergabeversuch wiederholt. Für Schreiben und Abspielen gilt eine gemeinsame Frist aus Blockdauer plus zwei Sekunden. Ein nicht behebbarer Fehler beendet das Training mit einer Fehlermeldung.
 - Desktop verwendet eine Mono-PCM-`SourceDataLine`; der Block wird geschrieben und bis zum Ende ausgespielt. Die aktuelle Desktop-Implementierung besitzt keine separate Wiedergabezeitüberschreitung.
 
 ### Lebenszyklus des Audiokanals
@@ -232,8 +234,12 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 ## 11. Bauen und Starten
 
 - Voraussetzung: JDK 17; für Android zusätzlich ein eingerichtetes Android SDK.
+- Die Versionsdatei `version.txt` liegt im Projektstamm und enthält ein `V` gefolgt von durch Punkte getrennten Zahlen, initial `V1.0.0`. Die vollständige Versionsnummer wird in kleiner Schrift unter **CW-Trainer** angezeigt. Für Androids `versionName` wird das führende `V` entfernt; die Desktop-Paketversion verwendet ebenfalls die Ziffernversion.
 - Desktop starten: `./gradlew :desktopApp:run`
 - Android-Debugversion installieren: `./gradlew :androidApp:installDebug`
 - Debug-APK erzeugen und Speicherort ausgeben: `./build.android.sh`
 - Debug-APK erzeugen und per ADB installieren: `./build_install_android.sh`. Bei genau einem verfügbaren Gerät wird direkt installiert; bei mehreren Geräten fragt das Skript nach dem Zielgerät.
-- Die APK wird unter `androidApp/build/outputs/apk/` erzeugt.
+- Die Android-Debug-APK wird unter `androidApp/build/outputs/apk/debug/androidApp-debug.apk` erzeugt.
+- Eine Release-APK bauen und ihren Pfad ausgeben: `./release.sh`. Das Skript baut die Release-Variante und legt die Datei unter `androidApp/build/outputs/apk/release/` ab. Der Name lautet `cw_trainer_<Version mit Unterstrichen>.apk`; bei `version.txt` mit `V1.0.0` also `cw_trainer_V1_0_0.apk`.
+- Der lokale Release-Build ist mit dem Android-Debug-Schlüssel signiert, damit er per ADB installierbar ist. Dieser Schlüssel ist nicht für eine Store-Veröffentlichung bestimmt.
+- Release bauen und installieren: `./release_and_install.sh`. Das Skript ruft den Release-Build auf und installiert die versionierte APK mit `adb install -r`. Bei genau einem verfügbaren Gerät wird dieses verwendet; bei mehreren Geräten fragt das Skript in einem interaktiven Terminal nach dem Zielgerät. Ohne verfügbares Gerät oder ohne interaktives Terminal bei mehreren Geräten bricht es mit einer Meldung ab.

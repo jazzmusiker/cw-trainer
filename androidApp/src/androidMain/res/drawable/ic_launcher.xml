@@ -1,0 +1,61 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path android:fillColor="#090909" android:pathData="M0,0h108v108h-108z" />
+
+    <!-- Large grayscale ear in the background. -->
+    <path
+        android:fillColor="#B8BBBD"
+        android:pathData="M73,6 C91,6 104,21 104,42 C104,64 96,84 84,99 C77,108 63,109 52,103 C41,98 40,87 35,78 C32,72 25,68 22,60 C18,50 24,41 31,34 C36,29 36,20 45,13 C53,7 63,5 73,6 Z" />
+    <path
+        android:fillColor="#73787B"
+        android:pathData="M71,13 C87,12 97,25 97,43 C97,61 90,79 80,92 C74,100 65,101 57,97 C48,93 48,84 43,75 C39,67 30,63 29,56 C27,49 32,43 38,37 C44,31 43,22 51,17 C56,14 64,12 71,13 Z" />
+    <path
+        android:fillColor="#303437"
+        android:pathData="M70,20 C82,19 90,29 90,44 C90,59 84,73 76,84 C71,91 64,91 59,86 C54,81 55,72 50,66 C46,61 38,59 37,53 C36,47 42,42 47,37 C52,32 51,26 57,23 C61,21 66,20 70,20 Z" />
+    <path
+        android:fillColor="#A9ADB0"
+        android:pathData="M68,27 C75,25 81,31 82,39 C83,46 80,51 76,54 C72,57 68,54 67,50 C66,45 72,43 71,38 C71,35 68,34 65,36 C61,39 62,46 58,50 C55,53 51,51 52,47 C53,39 58,30 68,27 Z" />
+    <path
+        android:fillColor="#5C6164"
+        android:pathData="M58,58 C63,55 69,57 71,62 C73,67 69,72 66,76 C63,80 64,85 60,86 C55,87 52,82 52,77 C52,70 51,63 58,58 Z" />
+    <path
+        android:fillColor="#CDD0D2"
+        android:pathData="M74,31 C81,37 78,46 73,49 C70,51 69,48 72,45 C76,41 75,37 71,35 Z" />
+
+    <!-- CW lettering sits above the Morse symbols. -->
+    <group android:translateY="-62">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFD54F"
+            android:strokeWidth="4.6"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M29,78 C25,73 16,73 12,79 C7,86 11,98 20,99 C24,99 27,97 29,94 M37,76 L42,98 L49,82 L56,98 L62,76" />
+    </group>
+
+    <!-- Thicker yellow Morse for W, P and M: dot diameter and dash height are increased. -->
+    <path android:fillColor="#FFD54F" android:pathData="M9,42 m-2.8,0 a2.8,2.8 0,1 0,5.6 0 a2.8,2.8 0,1 0,-5.6 0" />
+    <path android:fillColor="#FFD54F" android:pathData="M15,39.2h9a2.8,2.8 0,0 1,0 5.6h-9a2.8,2.8 0,0 1,0 -5.6z" />
+    <path android:fillColor="#FFD54F" android:pathData="M27,39.2h9a2.8,2.8 0,0 1,0 5.6h-9a2.8,2.8 0,0 1,0 -5.6z" />
+
+    <path android:fillColor="#FFD54F" android:pathData="M43,42 m-2.8,0 a2.8,2.8 0,1 0,5.6 0 a2.8,2.8 0,1 0,-5.6 0" />
+    <path android:fillColor="#FFD54F" android:pathData="M49,39.2h8a2.8,2.8 0,0 1,0 5.6h-8a2.8,2.8 0,0 1,0 -5.6z" />
+    <path android:fillColor="#FFD54F" android:pathData="M60,39.2h8a2.8,2.8 0,0 1,0 5.6h-8a2.8,2.8 0,0 1,0 -5.6z" />
+    <path android:fillColor="#FFD54F" android:pathData="M72,42 m-2.8,0 a2.8,2.8 0,1 0,5.6 0 a2.8,2.8 0,1 0,-5.6 0" />
+
+    <path android:fillColor="#FFD54F" android:pathData="M81,39.2h8a2.8,2.8 0,0 1,0 5.6h-8a2.8,2.8 0,0 1,0 -5.6z" />
+    <path android:fillColor="#FFD54F" android:pathData="M93,39.2h8a2.8,2.8 0,0 1,0 5.6h-8a2.8,2.8 0,0 1,0 -5.6z" />
+
+    <!-- WPM lettering, layered over the ear. -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFD54F"
+        android:strokeWidth="4.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M8,51 L13,75 L19,59 L25,75 L31,51 M39,75 L39,51 L49,51 C57,51 57,63 49,63 L39,63 M64,75 L64,51 L75,66 L86,51 L86,75" />
+</vector>

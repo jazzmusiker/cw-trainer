@@ -1,4 +1,140 @@
-# CW-Trainer
+# English
+
+## CW-Trainer
+
+CW-Trainer plays randomly selected letters, digits, punctuation marks, and prosigns in Morse code. Listen to the transmission and review what you recognized. The review tracks correct answers, missed items, and misheard characters. You can also assess the spacing between groups.
+
+The app runs on Android and as a desktop application on macOS and Linux. Profiles and statistics are stored locally on each device.
+
+**Note:** The app interface is currently in German. The English labels below are translations; for example, **Settings** appears as **Einstellungen**, **Statistics** as **Statistik**, **Apply** as **Übernehmen**, and **Discard** as **Verwerfen**.
+
+## Quick start
+
+1. Select a profile at the top, or create one with **“+ Profile”**.
+2. Open **“Settings”**, choose the Morse characters, and adjust the speed, group size, training duration, and tone if needed.
+3. Return to **“Training”** and press **Start**.
+4. Listen to the transmission. When training ends or you stop it, the review appears. Tap any items you misheard or missed.
+5. Press **“Apply”** to add the results to statistics. Press **“Discard”** to close the review without changing statistics.
+
+## Navigation and profiles
+
+Use the header to switch between **Training** and **Settings**. Open the global error statistics with **Statistics**. From there, **Training** takes you back to the training screen.
+
+Settings belong to the selected profile and are saved automatically when changed. New profiles use the default settings. You can rename or delete a profile; names must be unique and cannot be empty. The last remaining profile cannot be deleted. While training is starting, running, or paused, you cannot switch profiles or create another one. Changes to training settings during a transmission take effect the next time you start training.
+
+## Settings
+
+### Training
+
+| Setting | Range | Default | Effect |
+| --- | --- | --- | --- |
+| **Speed** | 5–30 WPM | 12 WPM | Sets Morse timing. A dot lasts `1200 / WPM` milliseconds; a dash lasts three times as long. |
+| **Characters per group · Minimum** | 1–10 | 1 | Smallest random group size. |
+| **Characters per group · Maximum** | 1–10 | 5 | Largest random group size. The minimum and maximum are kept consistent. |
+| **Training duration** | 30 seconds, 1, 2, 3, or 5 minutes | 30 seconds | Length of the transmission. A pre-start countdown is separate and does not reduce training time. |
+| **Pause before training starts** | 0–5 seconds | 0 seconds | Wait after pressing **Start** before the first character is sent. The training screen shows a countdown during this time. |
+| **Tone pitch** | 100–2000 Hz | 600 Hz | Frequency of the Morse tone. |
+| **Pause between characters** | 3–20 dot lengths | 3 dot lengths | Time between characters in the same group. |
+| **Pause between groups** | 7–30 dot lengths | 7 dot lengths | Time between two groups. After a complete group pause, the gap appears as `␠` in the review. |
+
+Under **Morse characters**, choose which characters may be sent at random. All characters are enabled by default; at least one must remain enabled. Available characters include letters, German umlauts, digits, punctuation marks, and prosigns. Prosigns such as `<AR>` and `<SK>` are sent as continuous Morse sequences.
+
+The speaker button next to the tone-pitch control plays **“CQ TEST”** using the current speed, pitch, and pauses. The training-character selection and group-size settings do not affect this test. The audio channel is opened for playback and closed afterward.
+
+## Using the training controls
+
+The large display and status on the training screen show the pre-start countdown, the remaining training time, or the current training state.
+
+- **Start** begins a new training session. Any open review is discarded.
+- **Pause** pauses training after the current Morse character has finished. The timer pauses as well.
+- **Resume** reopens audio output and continues with the remaining time.
+- **Stop** ends training. After stopping or when training ends normally, a review opens for the items that were fully transmitted.
+
+Training stops when the app moves to the background. No audio channel remains open while idle.
+
+## Learner input and review
+
+After stopping or when training time runs out, the transmission is shown as selectable items. Each group appears on its own line; long groups can be scrolled horizontally. Repeated characters are separate items and can be reviewed independently.
+
+Group gaps appear visibly as **`␠`** in the text. They are selectable too, so you can assess whether you recognized the group length or spacing correctly.
+
+Every item is initially marked correct. Tap an item to choose one of these responses:
+
+- **Heard correctly**: The item remains correct.
+- **Not heard**: The transmitted character or group gap is counted as missed.
+- **Heard as another character or as a group gap**: Choose the character or `␠` you perceived instead.
+
+Correct items appear in green. Incorrect and missed items appear in red. For an incorrect alternative, the character you reported appears below the transmitted character; a group gap is shown as `␠`.
+
+Press **“Apply”** to save the review once. The total counter increases by one for every fully transmitted character or group-gap item. **“Discard”** closes the open review without changing statistics; the transmitted text remains visible afterward. If you close the app while a review is open or start another training session, the unsubmitted review is lost.
+
+## Statistics
+
+Open **Statistics** in the header. Statistics are shared across all profiles and persist after the app restarts. They show counts, not percentages.
+
+The table contains a row for every available Morse character and an additional **`␠`** row for group gaps. It shows:
+
+- **Heard correctly**: Number of correctly recognized items.
+- **Not heard**: Number of items that were missed or identified as something else.
+- **Misheard**: Number of times this character was reported as the wrong alternative to another transmitted item.
+
+For example, if **A** was sent and **B** was reported, **A**’s **Not heard** count and **B**’s **Misheard** count each increase by one. If a character is perceived as a group gap, `␠` is counted as the wrong alternative. If a group gap is perceived as a Morse character, the gap is counted as missed and the reported character as misheard.
+
+The total counter includes character and group-gap items from submitted reviews. Characters that were not fully sent and group pauses that did not finish are not counted. **“Reset”** deletes all statistics and any open review after confirmation.
+
+## Running and building
+
+Java 17 is required. Android commands also require a configured Android SDK.
+
+### Desktop
+
+```sh
+./gradlew :desktopApp:run
+```
+
+### Android
+
+Install the debug app directly on a connected Android device:
+
+```sh
+./gradlew :androidApp:installDebug
+```
+
+Build a debug APK and print its path:
+
+```sh
+./build.android.sh
+```
+
+Build a debug APK and install it on a connected device:
+
+```sh
+./build_install_android.sh
+```
+
+If exactly one device is available, the script installs to it directly. If several devices are available, it asks you to select one.
+
+The APK is stored under `androidApp/build/outputs/apk/`.
+
+Create an installable release APK:
+
+```sh
+./release.sh
+```
+
+The version is read from `version.txt`. For `V1.0.0`, the file is named `cw_trainer_V1_0_0.apk` and is placed in the release output directory. The version is also displayed below the app title.
+
+Build a release APK and install it on a connected device:
+
+```sh
+./release_and_install.sh
+```
+
+---
+
+# Deutsch
+
+## CW-Trainer
 
 Der CW-Trainer spielt zufällig ausgewählte Buchstaben, Ziffern, Satzzeichen und Prosigns als Morsecode ab. Du hörst die Aussendung und wertest anschließend aus, was du erkannt hast. Die Auswertung zählt richtige Antworten, nicht gehörte Positionen und Verwechslungen. Auch die Abstände zwischen Zeichengruppen kannst du beurteilen.
 
@@ -111,3 +247,17 @@ Eine Debug-APK bauen und auf einem verbundenen Gerät installieren:
 Bei genau einem verfügbaren Gerät installiert das Skript direkt. Bei mehreren Geräten fragt es nach der Gerätenummer.
 
 Die APK liegt unter `androidApp/build/outputs/apk/`.
+
+Eine installierbare Release-APK erstellen:
+
+```sh
+./release.sh
+```
+
+Die Version wird aus `version.txt` gelesen. Bei `V1.0.0` heißt die Datei `cw_trainer_V1_0_0.apk` und liegt im Release-Ausgabeordner. Die Version wird auch unter dem Anwendungstitel angezeigt.
+
+Release bauen und auf einem verbundenen Gerät installieren:
+
+```sh
+./release_and_install.sh
+```

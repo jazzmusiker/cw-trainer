@@ -5,6 +5,11 @@ plugins {
     id("org.jetbrains.compose")
 }
 
+val appVersion = rootProject.file("version.txt").readText().trim()
+require(appVersion.matches(Regex("V[0-9]+(\\.[0-9]+)*"))) {
+    "version.txt muss das Format V1.0.0 verwenden"
+}
+
 kotlin {
     jvm("desktop")
     sourceSets {
@@ -23,7 +28,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "CWTrainer"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion.removePrefix("V")
         }
     }
 }

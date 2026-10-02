@@ -123,13 +123,20 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
         if (maxWidth < 620.dp) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "CW-Trainer",
-                        color = Color.Black,
-                        fontSize = 23.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "CW-Trainer",
+                            color = Color.Black,
+                            fontSize = 23.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            AppVersion,
+                            color = Color.Black.copy(alpha = 0.75f),
+                            fontSize = 11.sp,
+                            lineHeight = 12.sp,
+                        )
+                    }
                     TextButton(onClick = controller::toggleScreen) {
                         Text(destinationLabel, color = Color.Black, fontWeight = FontWeight.SemiBold)
                     }
@@ -151,13 +158,20 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "CW-Trainer",
-                    color = Color.Black,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 24.dp),
-                )
+                Column(modifier = Modifier.padding(end = 24.dp)) {
+                    Text(
+                        "CW-Trainer",
+                        color = Color.Black,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        AppVersion,
+                        color = Color.Black.copy(alpha = 0.75f),
+                        fontSize = 11.sp,
+                        lineHeight = 12.sp,
+                    )
+                }
                 ProfileControls(
                     state = state,
                     onSelect = controller::selectProfile,
