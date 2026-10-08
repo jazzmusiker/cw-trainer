@@ -638,7 +638,14 @@ private fun ReviewCharacterToken(entry: TrainingReviewEntry, onClick: () -> Unit
     val emitted = reviewCharacter(entry.emittedCharacterId)
     val heard = entry.heardCharacterId?.let(::reviewCharacter)
     val correct = entry.heardCharacterId == entry.emittedCharacterId
-    val color = if (correct) Color(0xFF263A2B) else Color(0xFF542D2D)
+    val isGroupSpace = entry.emittedCharacterId == GroupSpaceStatisticId
+    val color = when {
+        isGroupSpace && correct -> Color(0xFF131D16)
+        isGroupSpace -> Color(0xFF432626)
+        correct -> Color(0xFF263A2B)
+        else -> Color(0xFF542D2D)
+    }
+    val characterColor = if (isGroupSpace) Color(0xFF715E26) else WarmYellow
     val feedback = when {
         correct -> null
         entry.heardCharacterId == null -> "Nicht gehört"
@@ -651,7 +658,7 @@ private fun ReviewCharacterToken(entry: TrainingReviewEntry, onClick: () -> Unit
         elevation = 0.dp,
     ) {
         Column(Modifier.padding(horizontal = 8.dp, vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(emitted?.label ?: entry.emittedCharacterId, color = WarmYellow, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(emitted?.label ?: entry.emittedCharacterId, color = characterColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             feedback?.let { Text(it, color = SoftYellow, fontSize = 8.sp, maxLines = 1) }
         }
     }
@@ -814,7 +821,7 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 value = profile.speedWpm.toFloat(),
                 range = 5f..30f,
                 steps = 24,
-                onValueChange = { value -> controller.updateProfile { it.copy(speedWpm = value.toInt()) } },
+                onValueChange = { value -> controller.updateProfile { it.copy(speedWpm = value.roundToInt()) } },
             )
         }
         item {
@@ -825,7 +832,7 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 range = 1f..10f,
                 steps = 8,
                 onValueChange = { value ->
-                    val min = value.toInt()
+                    val min = value.roundToInt()
                     controller.updateProfile { it.copy(wordLengthMin = min, wordLengthMax = maxOf(it.wordLengthMax, min)) }
                 },
             )
@@ -838,7 +845,7 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 range = 1f..10f,
                 steps = 8,
                 onValueChange = { value ->
-                    val max = value.toInt()
+                    val max = value.roundToInt()
                     controller.updateProfile { it.copy(wordLengthMin = minOf(it.wordLengthMin, max), wordLengthMax = max) }
                 },
             )
@@ -856,7 +863,7 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 value = profile.pauseBeforeStartSeconds.toFloat(),
                 range = 0f..5f,
                 steps = 4,
-                onValueChange = { value -> controller.updateProfile { it.copy(pauseBeforeStartSeconds = value.toInt()) } },
+                onValueChange = { value -> controller.updateProfile { it.copy(pauseBeforeStartSeconds = value.roundToInt()) } },
             )
         }
         item {
@@ -889,7 +896,7 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 value = profile.pauseBetweenCharacters.toFloat(),
                 range = 3f..20f,
                 steps = 16,
-                onValueChange = { value -> controller.updateProfile { it.copy(pauseBetweenCharacters = value.toInt()) } },
+                onValueChange = { value -> controller.updateProfile { it.copy(pauseBetweenCharacters = value.roundToInt()) } },
             )
         }
         item {
@@ -899,7 +906,7 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 value = profile.pauseBetweenGroups.toFloat(),
                 range = 7f..30f,
                 steps = 22,
-                onValueChange = { value -> controller.updateProfile { it.copy(pauseBetweenGroups = value.toInt()) } },
+                onValueChange = { value -> controller.updateProfile { it.copy(pauseBetweenGroups = value.roundToInt()) } },
             )
         }
         item { SectionTitle("Morsezeichen · ${profile.enabledCharacterIds.size} ausgewählt") }

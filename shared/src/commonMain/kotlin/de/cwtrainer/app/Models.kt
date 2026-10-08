@@ -68,7 +68,7 @@ object MorseCharacters {
     )
     private val punctuation = listOf(
         "." to ".-.-.-", "," to "--..--", "-" to "-....-", ":" to "---...", "/" to "-..-.",
-        "?" to "..--..", "!" to "-.-.--", ";" to "-.-.-.", "(" to "-.--.", ")" to "-.--.-",
+        "?" to "..--..", "!" to "-.-.--", ";" to "-.-.-.", "(" to "-.--.", ")" to "-.--.-", "=" to "-...-", "+" to ".-.-."
     )
 
     val all: List<MorseCharacter> = buildList {
@@ -82,8 +82,8 @@ object MorseCharacters {
         add(MorseCharacter("<VE>", "<VE>", "...-.", prosign = true))
         add(MorseCharacter("<KA>", "<KA>", "-.-.-", prosign = true))
         add(MorseCharacter("<SK>", "<SK>", "...-.-", prosign = true))
-        add(MorseCharacter("<AR>", "<AR>", ".-.-.", prosign = true))
-        add(MorseCharacter("<BT>", "<BT>", "-...-", prosign = true))
+       // add(MorseCharacter("<AR>", "<AR>", ".-.-.", prosign = true))
+       // add(MorseCharacter("<BT>", "<BT>", "-...-", prosign = true))
         add(MorseCharacter("<KN>", "<KN>", "-.--.", prosign = true))
         add(MorseCharacter("<HH>", "<HH>", "........", prosign = true))
     }
