@@ -1,6 +1,7 @@
 package de.cwtrainer.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -97,10 +98,15 @@ fun CwTrainerApp() {
         Surface(modifier = Modifier.fillMaxSize(), color = DeepBlack) {
             Column(modifier = Modifier.fillMaxSize()) {
                 TrainerHeader(state, controller)
-                when (state.screen) {
-                    TrainerScreen.Training -> TrainingScreen(state, controller)
-                    TrainerScreen.Settings -> SettingsScreen(state, controller)
-                    TrainerScreen.Statistics -> StatisticsScreen(state, controller)
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    when (state.screen) {
+                        TrainerScreen.Training -> TrainingScreen(state, controller)
+                        TrainerScreen.Settings -> SettingsScreen(state, controller)
+                        TrainerScreen.Statistics -> StatisticsScreen(state, controller)
+                    }
+                }
+                if (state.screen != TrainerScreen.Statistics) {
+                    StatisticsFooter(controller)
                 }
             }
         }
@@ -120,51 +126,31 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
             .background(MorseOrange)
             .padding(start = 18.dp, top = 4.dp, end = 18.dp, bottom = 12.dp)
     ) {
-        if (maxWidth < 620.dp) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "CW-Trainer",
-                            color = Color.Black,
-                            fontSize = 23.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            AppVersion,
-                            color = Color.Black.copy(alpha = 0.75f),
-                            fontSize = 11.sp,
-                            lineHeight = 12.sp,
-                        )
-                    }
-                    TextButton(onClick = controller::toggleScreen) {
-                        Text(destinationLabel, color = Color.Black, fontWeight = FontWeight.SemiBold)
-                    }
-                    if (state.screen != TrainerScreen.Statistics) {
-                        TextButton(onClick = controller::showStatistics) {
-                            Text("Statistik", color = Color.Black, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        }
-                    }
-                }
-                ProfileControls(
-                    state = state,
-                    onSelect = controller::selectProfile,
-                    onAdd = { showAddProfile = true },
-                    menuExpanded = profileMenuExpanded,
-                    onMenuExpandedChange = { profileMenuExpanded = it },
-                    canChangeProfiles = canChangeProfiles,
-                    compact = true,
-                )
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.padding(end = 24.dp)) {
+        val compact = maxWidth < 620.dp
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
                         "CW-Trainer",
                         color = Color.Black,
-                        fontSize = 24.sp,
+                        fontSize = if (compact) 21.sp else 24.sp,
                         fontWeight = FontWeight.Bold,
                     )
+                    Spacer(Modifier.weight(1f))
+                    HeaderAction(
+                        onClick = controller::toggleScreen,
+                        text = destinationLabel,
+                        compact = compact,
+                        navigation = true,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
                         AppVersion,
                         color = Color.Black.copy(alpha = 0.75f),
@@ -172,6 +158,11 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
                         lineHeight = 12.sp,
                     )
                 }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 ProfileControls(
                     state = state,
                     onSelect = controller::selectProfile,
@@ -179,17 +170,18 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
                     menuExpanded = profileMenuExpanded,
                     onMenuExpandedChange = { profileMenuExpanded = it },
                     canChangeProfiles = canChangeProfiles,
-                    compact = false,
+                    compact = compact,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = controller::toggleScreen) {
-                    Text(destinationLabel, color = Color.Black, fontWeight = FontWeight.SemiBold)
-                }
-                if (state.screen != TrainerScreen.Statistics) {
-                    TextButton(onClick = controller::showStatistics) {
-                        Text("Statistik", color = Color.Black, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+                Text(
+                    "Lesen üben",
+                    modifier = Modifier.weight(1f),
+                    color = Color.Black,
+                    fontSize = if (compact) 12.sp else 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    textAlign = TextAlign.End,
+                )
             }
         }
     }
@@ -207,6 +199,25 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
 }
 
 @Composable
+private fun StatisticsFooter(controller: TrainerController) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PanelBlack)
+            .padding(horizontal = 18.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HeaderAction(
+            onClick = controller::showStatistics,
+            text = "Statistik",
+            compact = true,
+            navigation = true,
+        )
+    }
+}
+
+@Composable
 private fun ProfileControls(
     state: TrainerUiState,
     onSelect: (String) -> Unit,
@@ -219,10 +230,12 @@ private fun ProfileControls(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = if (compact) Arrangement.Start else Arrangement.End,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box {
+        Text("Profil:", color = Color.Black, fontSize = if (compact) 12.sp else 14.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(4.dp))
+        Box(modifier = Modifier.weight(1f, fill = false)) {
             HeaderAction(onClick = { onMenuExpandedChange(true) }, text = "⌄  ${state.selectedProfile.name}", enabled = canChangeProfiles)
             DropdownMenu(
                 expanded = menuExpanded,
@@ -238,15 +251,47 @@ private fun ProfileControls(
                 }
             }
         }
-        Spacer(Modifier.width(8.dp))
-        HeaderAction(onClick = onAdd, text = "+  Profil", enabled = canChangeProfiles)
+        Spacer(Modifier.width(4.dp))
+        HeaderAction(onClick = onAdd, text = "+", enabled = canChangeProfiles)
     }
 }
 
 @Composable
-private fun HeaderAction(onClick: () -> Unit, text: String, enabled: Boolean = true) {
-    TextButton(onClick = onClick, enabled = enabled) {
-        Text(text, color = Color.Black, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+private fun HeaderAction(
+    onClick: () -> Unit,
+    text: String,
+    enabled: Boolean = true,
+    compact: Boolean = false,
+    navigation: Boolean = false,
+) {
+    val shape = RoundedCornerShape(8.dp)
+    Box(
+        modifier = Modifier
+            .background(Color(0xFFD9781E), shape)
+            .border(1.dp, Color(0xFFB35A16), shape)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(
+                horizontal = when {
+                    navigation && compact -> 4.dp
+                    navigation -> 8.dp
+                    text == "+" -> 12.dp
+                    else -> 10.dp
+                },
+                vertical = if (navigation) 2.dp else 6.dp,
+            ),
+    ) {
+        Text(
+            text,
+            color = Color.Black.copy(alpha = if (enabled) 1f else 0.5f),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = when {
+                navigation && compact -> 11.sp
+                navigation -> 14.sp
+                else -> 16.sp
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
