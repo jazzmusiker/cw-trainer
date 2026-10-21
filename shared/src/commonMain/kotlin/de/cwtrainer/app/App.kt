@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.toggleable
@@ -100,7 +101,10 @@ fun CwTrainerApp() {
                 TrainerHeader(state, controller)
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     when (state.screen) {
-                        TrainerScreen.Training -> TrainingScreen(state, controller)
+                        TrainerScreen.Training -> when (state.trainingUnit) {
+                            TrainingUnit.Reading -> TrainingScreen(state, controller)
+                            TrainingUnit.CharacterPractice -> CharacterPracticeScreen(state, controller)
+                        }
                         TrainerScreen.Settings -> SettingsScreen(state, controller)
                         TrainerScreen.Statistics -> StatisticsScreen(state, controller)
                     }
@@ -173,15 +177,9 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
                     compact = compact,
                     modifier = Modifier.weight(1f),
                 )
-                Text(
-                    "Lesen üben",
-                    modifier = Modifier.weight(1f),
-                    color = Color.Black,
-                    fontSize = if (compact) 12.sp else 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    textAlign = TextAlign.End,
-                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    TrainingUnitSelector(state, controller, compact)
+                }
             }
         }
     }
@@ -199,13 +197,44 @@ private fun TrainerHeader(state: TrainerUiState, controller: TrainerController) 
 }
 
 @Composable
+private fun TrainingUnitSelector(state: TrainerUiState, controller: TrainerController, compact: Boolean) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val enabled = !state.previewing && state.status !in listOf(
+        TrainingStatus.Starting,
+        TrainingStatus.Playing,
+        TrainingStatus.Paused,
+    )
+    Box {
+        HeaderAction(
+            onClick = { menuExpanded = true },
+            text = "⌄  ${state.trainingUnit.label}",
+            enabled = enabled,
+            compact = compact,
+        )
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            TrainingUnit.values().forEach { unit ->
+                DropdownMenuItem(onClick = {
+                    controller.selectTrainingUnit(unit)
+                    menuExpanded = false
+                }) {
+                    Text(unit.label)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatisticsFooter(controller: TrainerController) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(PanelBlack)
             .padding(horizontal = 18.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeaderAction(
@@ -274,10 +303,15 @@ private fun HeaderAction(
                 horizontal = when {
                     navigation && compact -> 4.dp
                     navigation -> 8.dp
+                    compact -> 6.dp
                     text == "+" -> 12.dp
                     else -> 10.dp
                 },
-                vertical = if (navigation) 2.dp else 6.dp,
+                vertical = when {
+                    navigation -> 2.dp
+                    compact -> 4.dp
+                    else -> 6.dp
+                },
             ),
     ) {
         Text(
@@ -287,6 +321,7 @@ private fun HeaderAction(
             fontSize = when {
                 navigation && compact -> 11.sp
                 navigation -> 14.sp
+                compact -> 14.sp
                 else -> 16.sp
             },
             maxLines = 1,
@@ -425,6 +460,252 @@ private fun RenameProfileDialog(
         backgroundColor = PanelBlack,
         contentColor = SoftYellow,
     )
+}
+
+@Composable
+private fun CharacterPracticeScreen(state: TrainerUiState, controller: TrainerController) {
+    val session = state.characterPracticeSession
+    val availableIds = session?.poolCharacterIds
+        ?: state.selectedProfile.enabledCharacterIds
+            .toSet()
+            .let { enabled -> MorseCharacters.all.filter { it.id in enabled }.take(8).map { it.id } }
+    val characters = availableIds.mapNotNull { id -> MorseCharacters.all.firstOrNull { it.id == id } }
+    val starting = state.status == TrainingStatus.Starting
+    val active = state.status == TrainingStatus.Playing
+    val startSeconds = ceil(state.startDelayRemainingMillis.coerceAtLeast(0L) / 1_000.0).toLong()
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+            .padding(top = 6.dp, bottom = 24.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        val maxPanelWidth = if (maxWidth > 850.dp) 760.dp else maxWidth
+        val buttonWidth = 64.dp
+        val buttonSpacing = 8.dp
+        val availableButtonWidth = (maxPanelWidth - 32.dp).coerceAtLeast(buttonWidth)
+        val columns = ((availableButtonWidth + buttonSpacing) / (buttonWidth + buttonSpacing))
+            .toInt()
+            .coerceIn(1, 8)
+        Column(
+            modifier = Modifier
+                .width(maxPanelWidth)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(24.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = PanelBlack,
+                shape = RoundedCornerShape(24.dp),
+                elevation = 0.dp,
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("${session?.speedWpm ?: state.selectedProfile.speedWpm} WPM", color = Muted, fontSize = 14.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        when {
+                            starting -> "${startSeconds}s"
+                            active -> "Training läuft"
+                            session?.finished == true -> "Training beendet"
+                            else -> "Bereit zum Training"
+                        },
+                        color = WarmYellow,
+                        fontSize = if (starting || active) 26.sp else 28.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                    )
+                    if (starting) {
+                        Text("bis zum Start", color = Muted, fontSize = 14.sp)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = PanelBlack,
+                shape = RoundedCornerShape(24.dp),
+                elevation = 0.dp,
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(22.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ControlButton(
+                            symbol = "■",
+                            label = "Stop",
+                            enabled = starting || active,
+                            primary = false,
+                            onClick = controller::requestStop,
+                        )
+                        ControlButton(
+                            symbol = "▶",
+                            label = "Start",
+                            enabled = !active && !starting && !state.previewing,
+                            primary = true,
+                            onClick = controller::startOrResume,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = PanelBlack,
+                shape = RoundedCornerShape(20.dp),
+                elevation = 0.dp,
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "MORSEZEICHEN",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MorseOrange,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    characters.chunked(columns).forEach { rowCharacters ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            rowCharacters.forEach { character ->
+                                val canAnswer = active && session?.pendingCharacterId != null
+                                Button(
+                                    onClick = { controller.answerCharacterPractice(character.id) },
+                                    enabled = canAnswer,
+                                    modifier = Modifier.width(buttonWidth).height(48.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = MorseOrange,
+                                        contentColor = Color.Black,
+                                        disabledBackgroundColor = DeepBlack,
+                                        disabledContentColor = SoftYellow,
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                                ) {
+                                    Text(character.label, fontSize = 14.sp, maxLines = 1)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    if (state.message?.startsWith("Audioausgabe") == true) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(state.message.orEmpty(), color = Color(0xFFFF8A80), fontSize = 13.sp)
+                    }
+                }
+            }
+
+            if (session?.finished == true) {
+                Spacer(Modifier.height(16.dp))
+                CharacterPracticeStatistics(session, state.message, controller)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CharacterPracticeStatistics(
+    session: CharacterPracticeSession,
+    message: String?,
+    controller: TrainerController,
+) {
+    val horizontalScroll = rememberScrollState()
+    val columnWidths = listOf(84.dp, 112.dp, 112.dp, 138.dp)
+    val tableWidth = columnWidths.reduce { total, width -> total + width }
+    val characters = session.poolCharacterIds.mapNotNull { id -> MorseCharacters.all.firstOrNull { it.id == id } }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = PanelBlack,
+        shape = RoundedCornerShape(16.dp),
+        elevation = 0.dp,
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                "Zeichen Statistik",
+                modifier = Modifier.fillMaxWidth(),
+                color = WarmYellow,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(12.dp))
+            BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                val tableModifier = if (tableWidth <= maxWidth) {
+                    Modifier.width(tableWidth)
+                } else {
+                    Modifier.horizontalScroll(horizontalScroll).width(tableWidth)
+                }
+                Column(tableModifier, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(Modifier.width(tableWidth).background(DeepBlack)) {
+                        StatisticCell("Zeichen", columnWidths[0], header = true)
+                        StatisticCell("Richtig gehört", columnWidths[1], header = true)
+                        StatisticCell("Nicht gehört", columnWidths[2], header = true)
+                        StatisticCell("Fälschlich gehört", columnWidths[3], header = true)
+                    }
+                    Divider(color = Muted.copy(alpha = 0.45f))
+                    characters.forEachIndexed { index, character ->
+                        val counts = session.counts[character.id] ?: CharacterStatistics()
+                        Row(
+                            modifier = Modifier.width(tableWidth).background(if (index % 2 == 0) DeepBlack else PanelBlack),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            StatisticCell(character.label, columnWidths[0])
+                            StatisticCell(counts.correctlyHeard.toString(), columnWidths[1])
+                            StatisticCell(counts.notHeard.toString(), columnWidths[2])
+                            StatisticCell(counts.falselyHeard.toString(), columnWidths[3])
+                        }
+                    }
+                }
+            }
+            if (!session.resolved) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "In Statistik übernehmen",
+                    modifier = Modifier.fillMaxWidth(),
+                    color = SoftYellow,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                )
+                if (message?.startsWith("Statistik") == true) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(message, color = Color(0xFFFF8A80), fontSize = 13.sp)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = controller::discardCharacterPracticeStatistics) {
+                        Text("Verwerfen", color = SoftYellow)
+                    }
+                    Button(
+                        onClick = controller::commitCharacterPracticeStatistics,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MorseOrange, contentColor = Color.Black),
+                    ) {
+                        Text("Übernehmen")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

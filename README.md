@@ -4,23 +4,23 @@
 
 CW-Trainer plays randomly selected letters, digits, punctuation marks, and prosigns in Morse code. Listen to the transmission and review what you recognized. The review tracks correct answers, missed items, and misheard characters. You can also assess the spacing between groups.
 
-The app runs on Android and as a desktop application on macOS and Linux. Profiles and statistics are stored locally on each device.
+The app runs on Android and as a desktop application on macOS and Linux. Profiles, statistics, and the selected training unit are stored locally on each device.
 
-**Note:** The app interface is currently in German. The English labels below are translations; for example, **Settings** appears as **Einstellungen**, **Statistics** as **Statistik**, **Apply** as **Übernehmen**, and **Discard** as **Verwerfen**.
+**Note:** The app interface is currently in German. The English labels below are translations; for example, **Settings** appears as **Einstellungen**, **Statistics** as **Statistik**, **Apply** as **Übernehmen**, **Discard** as **Verwerfen**, and **+ Profile** as **+**.
 
 ## Quick start
 
-1. Select a profile at the top, or create one with **“+ Profile”**.
+1. Select a profile at the top, or create one with **“+”**.
 2. Open **“Settings”**, choose the Morse characters, and adjust the speed, group size, training duration, and tone if needed.
-3. Return to **“Training”** and press **Start**.
-4. Listen to the transmission. When training ends or you stop it, the review appears. Tap any items you misheard or missed.
+3. Return to **“Training”**, select **Lesen üben** or **Zeichen üben** in the header, and press **Start**.
+4. For **Lesen üben**, listen to the transmission. When training ends or you stop it, the review appears. Tap any items you misheard or missed.
 5. Press **“Apply”** to add the results to statistics. Press **“Discard”** to close the review without changing statistics.
 
 ## Navigation and profiles
 
-Use the header to switch between **Training** and **Settings**. Open the global error statistics with **Statistics**. From there, **Training** takes you back to the training screen.
+Use the header to switch between **Training** and **Settings**. The selector beside the profile switches between **Lesen üben** and **Zeichen üben**; this selection is global and is restored after an app restart. Open the global error statistics with **Statistics** in the narrow footer below the content. From there, **Training** takes you back to the training screen.
 
-Settings belong to the selected profile and are saved automatically when changed. New profiles use the default settings. You can rename or delete a profile; names must be unique and cannot be empty. The last remaining profile cannot be deleted. While training is starting, running, or paused, you cannot switch profiles or create another one. Changes to training settings during a transmission take effect the next time you start training.
+Settings belong to the selected profile and are saved automatically when changed. New profiles use the default settings. You can rename or delete a profile; names must be unique and cannot be empty. The last remaining profile cannot be deleted. While training is starting, running, or paused, you cannot switch profiles or create another one. In **Lesen üben**, changed settings take effect the next time you start training. In **Zeichen üben**, changing any profile setting ends the active transmission and discards the current session statistics; the updated settings and character buttons are ready after you press **Start** again.
 
 ## Settings
 
@@ -37,11 +37,11 @@ Settings belong to the selected profile and are saved automatically when changed
 | **Pause between characters** | 3–20 dot lengths | 3 dot lengths | Time between characters in the same group. |
 | **Pause between groups** | 7–30 dot lengths | 7 dot lengths | Time between two groups. After a complete group pause, the gap appears as `␠` in the review. |
 
-Under **Morse characters**, choose which characters may be sent at random. All characters are enabled by default; at least one must remain enabled. Available characters include letters, German umlauts, digits, punctuation marks, and prosigns. Prosigns such as `<AR>` and `<SK>` are sent as continuous Morse sequences.
+Under **Morse characters**, choose which characters may be sent at random. All available characters are enabled by default; at least one must remain enabled. Available characters include letters, German umlauts, digits, punctuation marks, and the prosigns `<AS>`, `<VE>`, `<KA>`, `<SK>`, `<KN>`, and `<HH>`. Prosigns are sent as continuous Morse sequences.
 
 The speaker button next to the tone-pitch control plays **“CQ TEST”** using the current speed, pitch, and pauses. The training-character selection and group-size settings do not affect this test. The audio channel is opened for playback and closed afterward.
 
-## Using the training controls
+## Using the “Lesen üben” controls
 
 The large display and status on the training screen show the pre-start countdown, the remaining training time, or the current training state.
 
@@ -51,6 +51,14 @@ The large display and status on the training screen show the pre-start countdown
 - **Stop** ends training. After stopping or when training ends normally, a review opens for the items that were fully transmitted.
 
 Training stops when the app moves to the background. No audio channel remains open while idle.
+
+## “Zeichen üben” (Character practice)
+
+Choose **Zeichen üben** in the header selector. The answer buttons represent the first one to eight enabled Morse characters in the order shown in Settings. Characters are selected randomly from that pool, with repetition, until you press **Stop**. This mode uses the selected profile’s speed, pitch, character pause, and pre-start pause. It ignores training duration, group size, and group pause.
+
+After each fully transmitted character, tap the button for the character you heard. You can answer while the following character is being transmitted; your tap applies to the most recently completed character. If it remains unanswered when the next character finishes, it is counted as **Not heard**. A wrong answer counts the transmitted character as **Not heard** and the character you selected as **Heard as another character**. Stopping interrupts the current character without counting it; earlier complete but unanswered characters count as **Not heard**.
+
+After stopping, a **Character statistics** table shows counts for every character in the pool. **Apply** adds these counts to the global statistics and increases the total presented counter by the number of fully transmitted characters. **Discard** leaves global statistics unchanged. The table remains visible until the next start or a change to any profile setting while **Zeichen üben** is selected. Such a change discards the session and its unsubmitted statistics; an active transmission is stopped. The action buttons disappear after applying or discarding. Starting again also discards any unresolved session counts.
 
 ## Learner input and review
 
@@ -70,7 +78,7 @@ Press **“Apply”** to save the review once. The total counter increases by on
 
 ## Statistics
 
-Open **Statistics** in the header. Statistics are shared across all profiles and persist after the app restarts. They show counts, not percentages.
+Open **Statistics** in the footer below the content. Statistics are shared across all profiles and persist after the app restarts. They show counts, not percentages.
 
 The table contains a row for every available Morse character and an additional **`␠`** row for group gaps. It shows:
 
@@ -106,6 +114,8 @@ Build a debug APK and print its path:
 ./build.android.sh
 ```
 
+The script prints the path to a versioned copy in `androidApp/build/outputs/apk/debug/`. Its name is `cw_trainer_<version with underscores>.apk`; with the current `version.txt` value `V1.1.0`, it is `cw_trainer_V1_1_0.apk`. Gradle's original `androidApp-debug.apk` remains in that directory too.
+
 Build a debug APK and install it on a connected device:
 
 ```sh
@@ -113,6 +123,7 @@ Build a debug APK and install it on a connected device:
 ```
 
 If exactly one device is available, the script installs to it directly. If several devices are available, it asks you to select one.
+If no device is available, or several are connected and the script has no interactive terminal, it stops with an error.
 
 The APK is stored under `androidApp/build/outputs/apk/`.
 
@@ -130,6 +141,9 @@ Build a release APK and install it on a connected device:
 ./release_and_install.sh
 ```
 
+The script builds the versioned release APK and installs it with ADB. It uses the only available device automatically, or asks you to choose if several devices are connected.
+It stops with an error if no device is available or if several devices are connected without an interactive terminal. The local release build is signed with the Android debug key and is intended for local installation, not store publication.
+
 ---
 
 # Deutsch
@@ -138,21 +152,21 @@ Build a release APK and install it on a connected device:
 
 Der CW-Trainer spielt zufällig ausgewählte Buchstaben, Ziffern, Satzzeichen und Prosigns als Morsecode ab. Du hörst die Aussendung und wertest anschließend aus, was du erkannt hast. Die Auswertung zählt richtige Antworten, nicht gehörte Positionen und Verwechslungen. Auch die Abstände zwischen Zeichengruppen kannst du beurteilen.
 
-Die Anwendung läuft auf Android sowie als Desktop-Anwendung unter macOS und Linux. Profile und Statistik werden lokal auf dem jeweiligen Gerät gespeichert.
+Die Anwendung läuft auf Android sowie als Desktop-Anwendung unter macOS und Linux. Profile, Statistik und die gewählte Trainingseinheit werden lokal auf dem jeweiligen Gerät gespeichert.
 
 ## Schnellstart
 
-1. Wähle oben ein Profil oder lege mit **„+ Profil“** ein neues an.
+1. Wähle oben ein Profil oder lege mit **„+“** ein neues an.
 2. Öffne **„Einstellungen“**, wähle die Morsezeichen und passe bei Bedarf Geschwindigkeit, Gruppengröße, Trainingsdauer und Ton an.
-3. Gehe zurück zu **„Training“** und drücke **Start**.
-4. Höre die Ausgabe. Nach Trainingsende oder Stopp erscheint die Auswertung. Tippe Positionen an, die du falsch oder nicht gehört hast.
+3. Gehe zurück zu **„Training“**, wähle im Header **Lesen üben** oder **Zeichen üben** und drücke **Start**.
+4. Bei **Lesen üben** hörst du die Ausgabe. Nach Trainingsende oder Stopp erscheint die Auswertung. Tippe Positionen an, die du falsch oder nicht gehört hast.
 5. Drücke **„Übernehmen“**, um die Ergebnisse zur Statistik hinzuzufügen. Mit **„Verwerfen“** schließt du die Auswertung ohne Statistikänderung.
 
 ## Navigation und Profile
 
-Im Kopfbereich wechselst du zwischen **Training** und **Einstellungen**. Über **Statistik** öffnest du die globale Fehlerstatistik. Von dort führt **Training** zurück zur Trainingsseite.
+Im Kopfbereich wechselst du zwischen **Training** und **Einstellungen**. Das Auswahlelement neben dem Profil schaltet zwischen **Lesen üben** und **Zeichen üben** um. Die Auswahl ist global und wird nach einem App-Neustart wiederhergestellt. Über **Statistik** im schmalen Footer unterhalb des Inhalts öffnest du die globale Fehlerstatistik. Von dort führt **Training** zurück zur Trainingsseite.
 
-Die Einstellungen gehören immer zum ausgewählten Profil und werden bei einer Änderung automatisch gespeichert. Neue Profile starten mit den Standardeinstellungen. Du kannst ein Profil umbenennen oder löschen; Namen müssen eindeutig und dürfen nicht leer sein. Das letzte Profil kann nicht gelöscht werden. Während eines laufenden, pausierten oder gerade startenden Trainings sind Profilwechsel und Anlegen weiterer Profile deaktiviert. Änderungen an Trainingseinstellungen während einer laufenden Aussendung werden für den nächsten Trainingsstart verwendet.
+Die Einstellungen gehören immer zum ausgewählten Profil und werden bei einer Änderung automatisch gespeichert. Neue Profile starten mit den Standardeinstellungen. Du kannst ein Profil umbenennen oder löschen; Namen müssen eindeutig und dürfen nicht leer sein. Das letzte Profil kann nicht gelöscht werden. Während eines laufenden, pausierten oder gerade startenden Trainings sind Profilwechsel und Anlegen weiterer Profile deaktiviert. Bei **Lesen üben** gelten geänderte Einstellungen ab dem nächsten Trainingsstart. Bei **Zeichen üben** beendet eine Änderung an einer Profileinstellung die laufende Aussendung und verwirft die aktuelle Sitzungsstatistik. Nach erneutem Drücken von **Start** gelten die neuen Einstellungen und die Zeichenbuttons werden aktualisiert.
 
 ## Einstellungen
 
@@ -169,11 +183,11 @@ Die Einstellungen gehören immer zum ausgewählten Profil und werden bei einer �
 | **Pause zwischen Zeichen** | 3–20 Punktlängen | 3 Punktlängen | Zeit zwischen zwei Zeichen innerhalb einer Gruppe. |
 | **Pause zwischen Gruppen** | 7–30 Punktlängen | 7 Punktlängen | Zeit zwischen zwei Gruppen. Nach einer vollständig abgelaufenen Gruppenpause wird der Abstand in der Auswertung als `␠` dargestellt. |
 
-Unter **Morsezeichen** wählst du aus, welche Zeichen zufällig gesendet werden dürfen. Standardmäßig sind alle Zeichen ausgewählt; mindestens ein Zeichen muss ausgewählt bleiben. Verfügbar sind Buchstaben, Umlaute, Ziffern, Satzzeichen und Prosigns. Prosigns, zum Beispiel `<AR>` oder `<SK>`, werden als zusammenhängende Morsezeichen gesendet.
+Unter **Morsezeichen** wählst du aus, welche Zeichen zufällig gesendet werden dürfen. Standardmäßig sind alle verfügbaren Zeichen ausgewählt; mindestens ein Zeichen muss ausgewählt bleiben. Verfügbar sind Buchstaben, Umlaute, Ziffern, Satzzeichen und die Prosigns `<AS>`, `<VE>`, `<KA>`, `<SK>`, `<KN>` und `<HH>`. Prosigns werden als zusammenhängende Morsezeichen gesendet.
 
 Der Lautsprecherknopf neben der Tonhöhen-Einstellung spielt **„CQ TEST“** mit den aktuellen Werten für Geschwindigkeit, Tonhöhe und Pausen ab. Die Auswahl der Trainingszeichen und die Gruppengröße bestimmen diesen Test nicht. Der Audiokanal wird für die Ausgabe geöffnet und anschließend wieder geschlossen.
 
-## Training bedienen
+## „Lesen üben“ bedienen
 
 Auf der Trainingsseite zeigen die große Anzeige und der Status den Countdown vor dem Start, die verbleibende Trainingszeit oder den Trainingszustand.
 
@@ -183,6 +197,14 @@ Auf der Trainingsseite zeigen die große Anzeige und der Status den Countdown vo
 - **Stopp** beendet das Training. Nach Stopp oder regulärem Trainingsende wird die Auswertung für die vollständig ausgegebenen Positionen geöffnet.
 
 Beim Wechsel der Anwendung in den Hintergrund wird ein laufendes Training beendet. Im Leerlauf bleibt kein Audiokanal geöffnet.
+
+## „Zeichen üben“
+
+Wähle **Zeichen üben** im Auswahlelement des Headers. Die Antwortbuttons zeigen die ersten ein bis acht aktivierten Morsezeichen in der Reihenfolge der Einstellungsansicht. Zufällig ausgewählte Zeichen werden mit Wiederholung bis zum Drücken von **Stopp** gesendet. Verwendet werden Geschwindigkeit, Tonhöhe, Zeichenpause und Startpause des aktiven Profils. Trainingsdauer, Gruppengröße und Gruppenpause werden ignoriert.
+
+Nach jedem vollständig gesendeten Zeichen kannst du den passenden Button drücken, auch während das folgende Zeichen gesendet wird. Die Eingabe gilt für das zuletzt vollständig gesendete Zeichen. Bleibt es bis zum Ende des nächsten Zeichens unbeantwortet, zählt es als **nicht gehört**. Bei einer falschen Eingabe wird das gesendete Zeichen als **nicht gehört** und das ausgewählte Zeichen als **fälschlich gehört** gezählt. **Stopp** unterbricht das aktuelle Zeichen, ohne es zu zählen; frühere vollständig gesendete, unbeantwortete Zeichen zählen als **nicht gehört**.
+
+Nach dem Stopp zeigt **Zeichen Statistik** die Zähler für alle Zeichen des Pools. **Übernehmen** addiert die Werte zur globalen Statistik und erhöht den Gesamtzähler um die Zahl der vollständig gesendeten Zeichen. **Verwerfen** lässt die globale Statistik unverändert. Die Tabelle bleibt bis zum nächsten Start sichtbar, sofern nicht bei ausgewähltem **Zeichen üben** eine Profileinstellung geändert wird. Eine solche Änderung verwirft die Sitzung und ihre noch nicht übernommenen Zähler; eine laufende Aussendung wird gestoppt. Nach Übernehmen oder Verwerfen verschwinden die Aktionsbuttons. Ein neuer Start verwirft ebenfalls noch nicht übernommene Zähler.
 
 ## Eingabe und Auswertung durch den Lernenden
 
@@ -202,7 +224,7 @@ Korrekte Positionen erscheinen grün. Falsche und nicht gehörte Positionen ersc
 
 ## Statistik
 
-Öffne **Statistik** im Kopfbereich. Die Statistik gilt gemeinsam für alle Profile und bleibt nach einem App-Neustart erhalten. Sie enthält reine Zählwerte, keine Prozentangaben.
+Öffne **Statistik** im Footer unterhalb des Inhalts. Die Statistik gilt gemeinsam für alle Profile und bleibt nach einem App-Neustart erhalten. Sie enthält reine Zählwerte, keine Prozentangaben.
 
 Die Tabelle enthält eine Zeile für jedes verfügbare Morsezeichen sowie eine Zeile **`␠`** für Gruppenabstände. Angezeigt werden:
 
@@ -238,6 +260,8 @@ Eine Debug-APK bauen und ihren Pfad ausgeben:
 ./build.android.sh
 ```
 
+Das Skript gibt den Pfad einer versionierten Kopie unter `androidApp/build/outputs/apk/debug/` aus. Der Dateiname lautet `cw_trainer_<Version mit Unterstrichen>.apk`; bei der aktuellen `version.txt`-Angabe `V1.1.0` also `cw_trainer_V1_1_0.apk`. Die ursprüngliche Gradle-Datei `androidApp-debug.apk` bleibt ebenfalls im Verzeichnis.
+
 Eine Debug-APK bauen und auf einem verbundenen Gerät installieren:
 
 ```sh
@@ -245,6 +269,7 @@ Eine Debug-APK bauen und auf einem verbundenen Gerät installieren:
 ```
 
 Bei genau einem verfügbaren Gerät installiert das Skript direkt. Bei mehreren Geräten fragt es nach der Gerätenummer.
+Wenn kein Gerät verfügbar ist oder mehrere Geräte verbunden sind und kein interaktives Terminal zur Auswahl bereitsteht, bricht das Skript mit einer Fehlermeldung ab.
 
 Die APK liegt unter `androidApp/build/outputs/apk/`.
 
@@ -261,3 +286,6 @@ Release bauen und auf einem verbundenen Gerät installieren:
 ```sh
 ./release_and_install.sh
 ```
+
+Das Skript erstellt die versionierte Release-APK und installiert sie mit ADB. Bei genau einem verfügbaren Gerät wird dieses automatisch verwendet; bei mehreren Geräten fragt das Skript nach dem Zielgerät.
+Ohne verfügbares Gerät oder bei mehreren Geräten ohne interaktives Terminal bricht es mit einer Fehlermeldung ab. Der lokale Release-Build ist mit dem Android-Debug-Schlüssel signiert und für lokale Installationen, nicht für eine Veröffentlichung im Store bestimmt.

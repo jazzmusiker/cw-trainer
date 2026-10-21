@@ -8,6 +8,8 @@ expect fun loadSavedProfiles(): String?
 expect fun saveProfiles(data: String)
 expect fun loadSavedStatistics(): String?
 expect fun saveStatistics(data: String)
+expect fun loadSavedTrainingUnit(): String?
+expect fun saveTrainingUnit(value: String)
 
 private val appLifecycleObservers = mutableSetOf<(Boolean) -> Unit>()
 

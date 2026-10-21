@@ -61,6 +61,15 @@ actual fun saveStatistics(data: String) {
     check(saved) { "Statistik konnte nicht gespeichert werden" }
 }
 
+actual fun loadSavedTrainingUnit(): String? =
+    AndroidProfileStorage.context.getSharedPreferences("cw-trainer", Context.MODE_PRIVATE)
+        .getString("trainingUnit", null)
+
+actual fun saveTrainingUnit(value: String) {
+    AndroidProfileStorage.context.getSharedPreferences("cw-trainer", Context.MODE_PRIVATE)
+        .edit().putString("trainingUnit", value).apply()
+}
+
 actual suspend fun openAudioOutput() = withContext(Dispatchers.IO) {
     synchronized(audioTrackLock) {
         if (audioTrack?.state != AudioTrack.STATE_INITIALIZED) {

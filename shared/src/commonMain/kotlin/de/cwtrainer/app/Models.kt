@@ -91,11 +91,26 @@ object MorseCharacters {
 
 enum class TrainerScreen { Training, Settings, Statistics }
 enum class TrainingStatus { Idle, Starting, Playing, Paused, Stopped, Finished }
+enum class TrainingUnit(val storageKey: String, val label: String) {
+    Reading("reading", "Lesen üben"),
+    CharacterPractice("character-practice", "Zeichen üben"),
+}
+
+data class CharacterPracticeSession(
+    val poolCharacterIds: List<String>,
+    val counts: Map<String, CharacterStatistics>,
+    val speedWpm: Int,
+    val presentedCount: Long = 0,
+    val pendingCharacterId: String? = null,
+    val finished: Boolean = false,
+    val resolved: Boolean = false,
+)
 
 data class TrainerUiState(
     val profiles: List<TrainingProfile>,
     val selectedProfileId: String,
     val screen: TrainerScreen = TrainerScreen.Training,
+    val trainingUnit: TrainingUnit = TrainingUnit.Reading,
     val status: TrainingStatus = TrainingStatus.Idle,
     val remainingMillis: Long = 30_000,
     val startDelayRemainingMillis: Long = 0,
@@ -104,6 +119,7 @@ data class TrainerUiState(
     val visibleTranscript: String? = null,
     val transmittedCharacters: List<TrainingReviewEntry> = emptyList(),
     val pendingReview: List<TrainingReviewEntry>? = null,
+    val characterPracticeSession: CharacterPracticeSession? = null,
     val statistics: SavedStatistics = SavedStatistics(),
     val message: String? = null,
 ) {

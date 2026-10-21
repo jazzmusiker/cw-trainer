@@ -17,17 +17,19 @@ Dieses Dokument beschreibt den aktuellen Funktionsumfang und das Verhalten der A
 - Dunkler bis schwarzer Hintergrund, gelbe beziehungsweise cremefarbene Texte, orangefarbener Header und orangefarbene Hervorhebungen.
 - Farbpalette: Hintergrund `#090909`, Karten `#151515`, Hauptgelb `#FFD54F`, helles Gelb `#F4E7B0`, Orange `#F29A38`, zurückhaltender Text `#AAA28A`.
 - Android-Launcher-Icon: dunkler Grund mit einem groß dargestellten, gut erkennbaren menschlichen Ohr in dunkleren Graustufen. Darüber liegen kräftige gelbe Morsezeichen für **W**, **P** und **M** (`.--`, `.--.`, `--`). Der gelbe Schriftzug **CW** steht oberhalb der Morsezeichen, **WPM** darunter; die Überlagerung darf das Ohr teilweise verdecken.
-- Header: oranger Hintergrund mit schwarzem Text. Unter dem Titel **CW-Trainer** steht die Versionsnummer in kleiner Schrift. Der Header enthält außerdem Profilwahl, **+ Profil**, Navigation zu Einstellungen oder Training sowie die Navigation zur Statistik.
-- Der Header hat 18 dp horizontale Innenabstände, 4 dp oberen und 12 dp unteren Innenabstand. Unter 620 dp verfügbarer Breite werden Profilwahl und Profilerstellung mit 4 dp Abstand zur Titelzeile in eine zweite Headerzeile gesetzt.
+- Header: oranger Hintergrund mit schwarzem Text. Die erste Zeile zeigt links **CW-Trainer** (24 sp, bei weniger als 620 dp Breite 21 sp) und rechtsbündig **Einstellungen** beziehungsweise **Training**. In der zweiten Zeile steht links die Versionsnummer in 11 sp. Die darunterliegende Profilzeile beginnt mit **Profil:** und enthält links die Profilauswahl sowie den Button **+** zum Erstellen eines Profils. Rechts davon steht das Auswahlelement für **Lesen üben** oder **Zeichen üben**. Die gewählte Einheit wird global gespeichert und nach einem App-Neustart wiederhergestellt; sie ist nicht an ein Profil gebunden. Während ein Training startet, läuft oder pausiert, ist die Einheitenwahl deaktiviert. **Profil:** verwendet 14 sp, bei weniger als 620 dp Breite 12 sp.
+- Navigationsbuttons, Profilaktionen und die Einheitenwahl haben eine dunkelorange Fläche (`#D9781E`), einen 1 dp feinen Rand in `#B35A16`, 8 dp abgerundete Ecken und schwarzen Text. Navigationsbuttons verwenden 14 sp Schrift, 8 dp horizontalen und 2 dp vertikalen Innenabstand. Unter 620 dp verfügbarer Breite werden sie mit 11 sp Schrift und 4 dp horizontalem Innenabstand dargestellt. Profilaktionen verwenden 16 sp Schrift, 10 dp horizontalen und 6 dp vertikalen Innenabstand; der **+**-Button hat 12 dp horizontalen Innenabstand. Die Einheitenwahl verwendet außerhalb kompakter Ansichten 16 sp Schrift und 10/6 dp Innenabstand, darunter 14 sp und 6/4 dp.
+- Der Header hat 18 dp horizontale Innenabstände, 4 dp oberen und 12 dp unteren Innenabstand. Zwischen dem Navigationsblock und der Profilzeile liegen 4 dp.
+- Unter dem Content-Bereich liegt außerhalb der Statistikansicht ein schmaler Footer mit dem mittig angeordneten Button **Statistik**. Der Footer hat die Kartenfarbe `#151515`, 18 dp horizontalen und 4 dp vertikalen Innenabstand. Der Button verwendet die dunkelorange Fläche `#D9781E`, einen 1 dp Rand in `#B35A16`, 8 dp abgerundete Ecken, schwarzen Text mit 11 sp Schrift sowie 4 dp horizontalen und 2 dp vertikalen Innenabstand.
 - Content-Bereich und Header sind vertikal mit kleinem Abstand angeordnet.
 - Die Trainingsansicht erhält 20 dp horizontale Innenabstände und beginnt 6 dp unterhalb des Headers. Bei breiten Ansichten wird der zentrale Inhaltsbereich auf 760 dp begrenzt.
 
 ### Ansichten
 
-- **Training:** Standardansicht beim Start. Enthält Status-/Timerkarte, die Bedienelemente und nach einer Aussendung den Text oder die Auswertung.
+- **Training:** Standardansicht beim Start. Enthält die auswählbaren Einheiten **Lesen üben** und **Zeichen üben**. **Lesen üben** zeigt Status-/Timerkarte, Bedienelemente und nach einer Aussendung Text oder Auswertung. **Zeichen üben** zeigt WPM, Start-/Stop-Bedienelemente und die auswählbaren Morsezeichen.
 - **Einstellungen:** Profileinstellungen und Morsezeichen-Auswahl in einer scrollbar angeordneten Liste.
 - **Statistik:** globale Fehlerstatistik.
-- In Training führt der Navigationsbutton zu **Einstellungen**. In Einstellungen und Statistik führt er zu **Training**. Der zusätzliche Headerbutton **Statistik** ist außerhalb der Statistikansicht sichtbar.
+- In Training führt der Navigationsbutton zu **Einstellungen**. In Einstellungen und Statistik führt er zu **Training**. Der Footerbutton **Statistik** ist außerhalb der Statistikansicht sichtbar.
 
 ### Statistikansicht
 
@@ -48,16 +50,28 @@ Dieses Dokument beschreibt den aktuellen Funktionsumfang und das Verhalten der A
 - Während einer Audio- oder Statistikfehlermeldung wird diese unter den Bedienelementen angezeigt.
 - Nach abgeschlossener bzw. gestoppter Aussendung wird die Auswertung in einer Karte angezeigt, die den verbleibenden vertikalen Platz einnimmt. Ihre Positionsliste ist vertikal scrollbar; Gruppenzeilen können horizontal gescrollt werden. Wenn keine Auswertung offen ist, aber ein Text sichtbar ist, wird dieser als statischer Text angezeigt.
 
+### Trainingseinheit „Zeichen üben“
+
+- Der Zeichenpool enthält die ersten ein bis acht aktivierten Morsezeichen in der sichtbaren Reihenfolge der Einstellungsansicht. Die Antwortbuttons werden für alle Zeichen des Pools angezeigt.
+- Die Überschrift **MORSEZEICHEN** steht mittig über dem Buttonraster. Die Buttons sind 64 × 48 dp groß, haben 8 dp Abstand und werden zeilenweise mittig angeordnet. Die Spaltenzahl passt sich der verfügbaren Breite an.
+- Die Statistiküberschrift **Zeichen Statistik** ist mittig. Die Tabelle steht mittig, solange sie in den verfügbaren Platz passt; andernfalls kann sie horizontal gescrollt werden. **In Statistik übernehmen** und die Aktionsbuttons stehen ebenfalls mittig. Zwischen dieser Überschrift und der Buttonzeile liegen 8 dp.
+- Aus dem Pool wird zufällig mit Wiederholung jeweils ein Zeichen ausgesendet. Das Training läuft bis **Stop**; die Trainingsdauer, Gruppengröße und Gruppenpause werden ignoriert. Verwendet werden Profilgeschwindigkeit, Tonhöhe, Zeichenpause und Startpause.
+- Bei positiver Startpause wird ein Countdown angezeigt. Danach werden Zeichen mit der konfigurierten Zeichenpause als eine fortlaufende Wortgruppe gemorst.
+- Nach jedem vollständig ausgesendeten Zeichen kann der Lernende bis zum vollständigen Ende des nächsten Zeichens antworten. Eine ausbleibende Antwort zählt als **nicht gehört**. Eine falsche Antwort zählt für das ausgesendete Zeichen als **nicht gehört** und für das gewählte Zeichen als **fälschlich gehört**. Bei richtiger Antwort steigt **richtig gehört**.
+- Bei **Stop** wird ein gerade unvollständig ausgesendetes Zeichen nicht gezählt. Vollständig ausgesendete, aber unbeantwortete Zeichen zählen als **nicht gehört**.
+- Nach dem Stoppen erscheint **Zeichen Statistik** mit einer Zeile je Zeichen des Pools sowie den Zählspalten **richtig gehört**, **nicht gehört** und **fälschlich gehört**. **Übernehmen** addiert die Werte einmalig zur globalen Statistik und erhöht den Gesamtzähler um die Zahl der vollständig ausgesendeten Zeichen. **Verwerfen** ändert die globale Statistik nicht.
+- Die Tabelle bleibt nach **Übernehmen** oder **Verwerfen** bis zum nächsten Start sichtbar. Eine Änderung an einer Profileinstellung verwirft die Sitzung einschließlich ihrer noch nicht übernommenen Statistik ebenfalls und aktualisiert die Buttons nach der neuen Zeichenauswahl. Eine laufende Aussendung wird dabei beendet; anschließend kann sie mit **Start** neu begonnen werden. Die Aktionsbuttons verschwinden nach einer erfolgreichen Übernahme oder nach dem Verwerfen. Ein neuer Start verwirft nicht übernommene Zähler der vorherigen Einheit.
+
 ## 3. Profile
 
 - Ein Profil ist ein benannter Satz von Trainingseinstellungen und einer Morsezeichen-Auswahl.
 - Das Profilmenü im Header erlaubt die Auswahl eines gespeicherten Profils. Das ausgewählte Profil wird gespeichert und beim nächsten App-Start wieder ausgewählt.
 - Das erste Profil heißt **Default** und wird beim ersten Start automatisch angelegt.
-- **+ Profil** öffnet einen Dialog zur Erstellung. Ein neues Profil wird direkt ausgewählt und erhält alle Standardwerte.
+- **+** öffnet einen Dialog zur Profilerstellung. Ein neues Profil wird direkt ausgewählt und erhält alle Standardwerte.
 - Profilnamen werden getrimmt, dürfen nicht leer sein und müssen ohne Beachtung der Groß-/Kleinschreibung eindeutig sein.
 - In der Einstellungsansicht kann das aktive Profil umbenannt oder gelöscht werden. Löschen muss bestätigt werden. Das letzte verbleibende Profil kann nicht gelöscht werden.
 - Wird das aktive Profil gelöscht, wird ein verbleibendes Profil ausgewählt.
-- Während Training startet, läuft oder pausiert oder ein CQ-Test abgespielt wird, sind Profilwahl, Profilerstellung und Löschen deaktiviert. Einstellungen dürfen geändert werden; ein laufendes Training verwendet dennoch seine beim Start gespeicherten Werte und Tonsamples. Die Änderung gilt für den nächsten Trainingsstart.
+- Während Training startet, läuft oder pausiert oder ein CQ-Test abgespielt wird, sind Profilwahl, Profilerstellung und Löschen deaktiviert. In **Lesen üben** werden geänderte Einstellungen erst beim nächsten Trainingsstart verwendet. In **Zeichen üben** beendet eine Änderung an einer Profileinstellung die laufende Sitzung und verwirft deren aktuelle Statistik; die neuen Einstellungen gelten nach erneutem Start.
 - Änderungen an Profilen werden lokal gespeichert.
 
 ## 4. Einstellungen
@@ -121,8 +135,7 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 | = | `-...-` | ? | `..--..` | ! | `-.-.--` |
 | ; | `-.-.-.` | ( | `-.--.` | ) | `-.--.-` |
 | `<AS>` | `.-...` | `<VE>` | `...-.` | `<KA>` | `-.-.-` |
-| `<SK>` | `...-.-` | `<AR>` | `.-.-.` | `<BT>` | `-...-` |
-| `<KN>` | `-.--.` | `<HH>` | `........` |  |  |
+| `<SK>` | `...-.-` | `<KN>` | `-.--.` | `<HH>` | `........` |
 
 ## 6. Aussendung und Trainingssteuerung
 
@@ -149,6 +162,7 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 - **Stopp** fordert das Beenden an der nächsten Zeichengrenze an.
 - Nach Stopp oder Ablauf der Trainingsdauer werden vollständig gesendete Zeichen und vollständig abgelaufene Gruppenpausen zur Rückmeldung angeboten.
 - Kann die Audioausgabe nicht hergestellt oder fortgesetzt werden, wird das Training gestoppt und eine Fehlermeldung angezeigt. Ein neuer Trainingsstart ist möglich.
+- Die Regel, dass Stopp ein begonnenes Zeichen beendet, gilt für **Lesen üben**. Bei **Zeichen üben** unterbricht Stopp das aktuelle Zeichen; dieses wird nicht gezählt.
 
 ## 7. Audioerzeugung
 
@@ -216,7 +230,7 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 ## 9. Statistik
 
 - Die Fehlerstatistik ist global und nicht an Profile gebunden. Sie wird lokal gespeichert und übersteht einen App-Neustart.
-- Die Statistikansicht ist über **Statistik** im Header erreichbar und enthält eine Tabelle mit allen verfügbaren Morsezeichen sowie einer zusätzlichen Zeile `␠` für Gruppenabstände.
+- Der Button **Statistik** im Footer ist in Training und Einstellungen sichtbar und wird in der Statistikansicht ausgeblendet. Die Statistikansicht enthält eine Tabelle mit allen verfügbaren Morsezeichen sowie einer zusätzlichen Zeile `␠` für Gruppenabstände.
 - Tabellenfelder: Position/Zeichen, Morsecode (für `␠`: „Gruppenabstand“), richtig gehört, nicht gehört, fälschlich gehört.
 - Es werden absolute Zählwerte, keine Prozente, angezeigt.
 - Der Gesamtzähler zeigt die Zahl der übernommenen Zeichen- und Gruppenabstandspositionen.
@@ -238,8 +252,9 @@ Die folgenden Bezeichnungen und Muster werden in den Einstellungen, bei der Auss
 - Desktop starten: `./gradlew :desktopApp:run`
 - Android-Debugversion installieren: `./gradlew :androidApp:installDebug`
 - Debug-APK erzeugen und Speicherort ausgeben: `./build.android.sh`
+- Das Skript kopiert die Gradle-Debug-APK zusätzlich mit versionsbehaftetem Namen in `androidApp/build/outputs/apk/debug/`: `cw_trainer_<Version mit Unterstrichen>.apk`; bei der aktuellen Version `V1.1.0` also `cw_trainer_V1_1_0.apk`. Die unveränderte Gradle-Ausgabe `androidApp-debug.apk` bleibt ebenfalls vorhanden.
 - Debug-APK erzeugen und per ADB installieren: `./build_install_android.sh`. Bei genau einem verfügbaren Gerät wird direkt installiert; bei mehreren Geräten fragt das Skript nach dem Zielgerät.
-- Die Android-Debug-APK wird unter `androidApp/build/outputs/apk/debug/androidApp-debug.apk` erzeugt.
+- Die unveränderte Gradle-Debug-APK wird unter `androidApp/build/outputs/apk/debug/androidApp-debug.apk` erzeugt.
 - Eine Release-APK bauen und ihren Pfad ausgeben: `./release.sh`. Das Skript baut die Release-Variante und legt die Datei unter `androidApp/build/outputs/apk/release/` ab. Der Name lautet `cw_trainer_<Version mit Unterstrichen>.apk`; bei `version.txt` mit `V1.0.0` also `cw_trainer_V1_0_0.apk`.
 - Der lokale Release-Build ist mit dem Android-Debug-Schlüssel signiert, damit er per ADB installierbar ist. Dieser Schlüssel ist nicht für eine Store-Veröffentlichung bestimmt.
 - Release bauen und installieren: `./release_and_install.sh`. Das Skript ruft den Release-Build auf und installiert die versionierte APK mit `adb install -r`. Bei genau einem verfügbaren Gerät wird dieses verwendet; bei mehreren Geräten fragt das Skript in einem interaktiven Terminal nach dem Zielgerät. Ohne verfügbares Gerät oder ohne interaktives Terminal bei mehreren Geräten bricht es mit einer Meldung ab.

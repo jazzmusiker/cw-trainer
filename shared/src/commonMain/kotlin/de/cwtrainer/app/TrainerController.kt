@@ -45,6 +45,9 @@ class TrainerController {
             ?: SavedProfiles()
         val profiles = saved.profiles.ifEmpty { listOf(TrainingProfile(id = "default", name = "Default")) }
         val selection = saved.selectedProfileId.takeIf { id -> profiles.any { it.id == id } } ?: profiles.first().id
+        val trainingUnit = runCatching { loadSavedTrainingUnit() }.getOrNull()
+            ?.let { savedValue -> TrainingUnit.values().firstOrNull { it.storageKey == savedValue } }
+            ?: TrainingUnit.Reading
         val statistics = readSavedStatistics()
         val normalized = profiles.map { profile ->
             val safeIds = profile.enabledCharacterIds.filter { id -> MorseCharacters.all.any { it.id == id } }
@@ -63,6 +66,7 @@ class TrainerController {
         return TrainerUiState(
             profiles = normalized,
             selectedProfileId = selection,
+            trainingUnit = trainingUnit,
             remainingMillis = normalized.first { it.id == selection }.trainingLengthSeconds * 1_000L,
             statistics = statistics,
         )
@@ -150,6 +154,26 @@ class TrainerController {
 
     fun showStatistics() {
         _state.update { it.copy(screen = TrainerScreen.Statistics) }
+    }
+
+    fun selectTrainingUnit(trainingUnit: TrainingUnit) {
+        val current = _state.value
+        if (current.previewing || current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) return
+        if (current.trainingUnit == trainingUnit) return
+        runCatching { saveTrainingUnit(trainingUnit.storageKey) }
+        _state.update {
+            it.copy(
+                trainingUnit = trainingUnit,
+                status = TrainingStatus.Idle,
+                remainingMillis = it.selectedProfile.trainingLengthSeconds * 1_000L,
+                startDelayRemainingMillis = 0,
+                transcript = "",
+                visibleTranscript = null,
+                transmittedCharacters = emptyList(),
+                pendingReview = null,
+                message = null,
+            )
+        }
     }
 
     fun selectProfile(profileId: String) {
@@ -258,12 +282,27 @@ class TrainerController {
             )
         }
         val profiles = current.profiles.map { if (it.id == selected.id) changed else it }
+        val resetCharacterPractice = current.trainingUnit == TrainingUnit.CharacterPractice && changed != selected
+        if (resetCharacterPractice) requestedAction.value = RequestedAction.None
         persist(profiles, current.selectedProfileId)
         _state.update {
             it.copy(
                 profiles = profiles,
                 remainingMillis = if (it.status == TrainingStatus.Idle) changed.trainingLengthSeconds * 1_000L else it.remainingMillis,
+                status = if (resetCharacterPractice) TrainingStatus.Idle else it.status,
+                startDelayRemainingMillis = if (resetCharacterPractice) 0 else it.startDelayRemainingMillis,
+                transcript = if (resetCharacterPractice) "" else it.transcript,
+                visibleTranscript = if (resetCharacterPractice) null else it.visibleTranscript,
+                transmittedCharacters = if (resetCharacterPractice) emptyList() else it.transmittedCharacters,
+                pendingReview = if (resetCharacterPractice) null else it.pendingReview,
+                characterPracticeSession = if (resetCharacterPractice) null else it.characterPracticeSession,
+                message = if (resetCharacterPractice) null else it.message,
             )
+        }
+        if (resetCharacterPractice && current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) {
+            closeAudioOutput()
+            trainingJob?.cancel()
+            trainingJob = null
         }
         val audioSettingsChanged = changed.frequencyHz != selected.frequencyHz || changed.speedWpm != selected.speedWpm
         val trainingActive = current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)
@@ -331,6 +370,76 @@ class TrainerController {
         }
     }
 
+    fun answerCharacterPractice(heardCharacterId: String) {
+        _state.update { current ->
+            val session = current.characterPracticeSession ?: return@update current
+            if (current.trainingUnit != TrainingUnit.CharacterPractice || current.status != TrainingStatus.Playing || session.finished) return@update current
+            if (heardCharacterId !in session.poolCharacterIds) return@update current
+            val emittedCharacterId = session.pendingCharacterId ?: return@update current
+            val counts = session.counts.toMutableMap()
+            if (heardCharacterId == emittedCharacterId) {
+                counts[emittedCharacterId] = (counts[emittedCharacterId] ?: CharacterStatistics()).let {
+                    it.copy(correctlyHeard = it.correctlyHeard + 1L)
+                }
+            } else {
+                counts[emittedCharacterId] = (counts[emittedCharacterId] ?: CharacterStatistics()).let {
+                    it.copy(notHeard = it.notHeard + 1L)
+                }
+                counts[heardCharacterId] = (counts[heardCharacterId] ?: CharacterStatistics()).let {
+                    it.copy(falselyHeard = it.falselyHeard + 1L)
+                }
+            }
+            current.copy(
+                characterPracticeSession = session.copy(
+                    counts = counts,
+                    pendingCharacterId = null,
+                ),
+            )
+        }
+    }
+
+    fun commitCharacterPracticeStatistics() {
+        val current = _state.value
+        val session = current.characterPracticeSession ?: return
+        if (!session.finished || session.resolved) return
+
+        val counts = current.statistics.characters.toMutableMap()
+        session.counts.forEach { (characterId, practiceCounts) ->
+            val savedCounts = counts[characterId] ?: CharacterStatistics()
+            counts[characterId] = savedCounts.copy(
+                correctlyHeard = savedCounts.correctlyHeard + practiceCounts.correctlyHeard,
+                notHeard = savedCounts.notHeard + practiceCounts.notHeard,
+                falselyHeard = savedCounts.falselyHeard + practiceCounts.falselyHeard,
+            )
+        }
+        val updatedStatistics = SavedStatistics(
+            totalPresentedItems = current.statistics.totalPresentedItems + session.presentedCount,
+            characters = counts,
+        )
+        val saved = runCatching { saveStatistics(json.encodeToString(updatedStatistics)) }.isSuccess
+        if (!saved) {
+            _state.update { it.copy(message = "Statistik konnte nicht gespeichert werden") }
+            return
+        }
+        _state.update {
+            if (it.characterPracticeSession == session) {
+                it.copy(
+                    statistics = updatedStatistics,
+                    characterPracticeSession = session.copy(resolved = true),
+                    message = null,
+                )
+            } else it
+        }
+    }
+
+    fun discardCharacterPracticeStatistics() {
+        _state.update { current ->
+            val session = current.characterPracticeSession ?: return@update current
+            if (!session.finished || session.resolved) return@update current
+            current.copy(characterPracticeSession = session.copy(resolved = true), message = null)
+        }
+    }
+
     private fun updateReviewEntry(index: Int, update: (TrainingReviewEntry) -> TrainingReviewEntry) {
         _state.update { current ->
             val review = current.pendingReview ?: return@update current
@@ -386,10 +495,20 @@ class TrainerController {
             _state.update { it.copy(message = "Statistik konnte nicht zurückgesetzt werden") }
             return
         }
-        _state.update {
-            it.copy(
+        _state.update { current ->
+            val activeCharacterSession = current.characterPracticeSession
+                ?.takeIf { current.trainingUnit == TrainingUnit.CharacterPractice && current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing) }
+                ?.let { session ->
+                    session.copy(
+                        counts = session.poolCharacterIds.associateWith { CharacterStatistics() },
+                        presentedCount = 0,
+                        pendingCharacterId = null,
+                    )
+                }
+            current.copy(
                 statistics = emptyStatistics,
                 pendingReview = null,
+                characterPracticeSession = activeCharacterSession,
                 transcript = "",
                 visibleTranscript = null,
                 transmittedCharacters = emptyList(),
@@ -400,6 +519,11 @@ class TrainerController {
 
     fun startOrResume() {
         if (_state.value.previewing || previewJob?.isActive == true) return
+        if (_state.value.trainingUnit == TrainingUnit.CharacterPractice) {
+            if (_state.value.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing)) return
+            startCharacterPractice()
+            return
+        }
         when (_state.value.status) {
             TrainingStatus.Paused -> {
                 requestedAction.value = RequestedAction.None
@@ -431,6 +555,7 @@ class TrainerController {
                 visibleTranscript = null,
                 transmittedCharacters = emptyList(),
                 pendingReview = null,
+                characterPracticeSession = null,
                 message = if (startDelayMillis > 0L) "Morsen startet" else "Training läuft",
             )
         }
@@ -477,11 +602,151 @@ class TrainerController {
         }
     }
 
+    private fun startCharacterPractice() {
+        val current = _state.value
+        val profile = current.selectedProfile
+        val enabledIds = profile.enabledCharacterIds.toSet()
+        val pool = MorseCharacters.all.filter { it.id in enabledIds }.take(8)
+            .ifEmpty { listOf(MorseCharacters.all.first()) }
+        val startDelayMillis = profile.pauseBeforeStartSeconds * 1_000L
+        requestedAction.value = RequestedAction.None
+        resumeGate.value = null
+        timerJob?.cancel()
+        timerJob = null
+        segmentStart = null
+        segmentBaseMillis = 0L
+        val session = CharacterPracticeSession(
+            poolCharacterIds = pool.map { it.id },
+            counts = pool.associate { it.id to CharacterStatistics() },
+            speedWpm = profile.speedWpm,
+        )
+        _state.update {
+            it.copy(
+                status = if (startDelayMillis > 0L) TrainingStatus.Starting else TrainingStatus.Playing,
+                remainingMillis = 0L,
+                startDelayRemainingMillis = startDelayMillis,
+                transcript = "",
+                visibleTranscript = null,
+                transmittedCharacters = emptyList(),
+                pendingReview = null,
+                characterPracticeSession = session,
+                message = if (startDelayMillis > 0L) "Morsen startet" else "Training läuft",
+            )
+        }
+        trainingJob = scope.launch {
+            try {
+                prepareToneSamples(profile)
+                if (startDelayMillis > 0L) {
+                    val startMark = TimeSource.Monotonic.markNow()
+                    while (true) {
+                        val left = (startDelayMillis - startMark.elapsedNow().inWholeMilliseconds).coerceAtLeast(0L)
+                        _state.update {
+                            it.copy(
+                                startDelayRemainingMillis = left,
+                                message = if (left > 0L) "Morsen startet in ${(left + 999L) / 1_000L} s" else "Morsen startet",
+                            )
+                        }
+                        if (requestedAction.value == RequestedAction.Stop) {
+                            finishCharacterPractice(TrainingStatus.Stopped, null)
+                            return@launch
+                        }
+                        if (left <= 0L) break
+                        delay(minOf(left, 100L))
+                    }
+                }
+                if (requestedAction.value == RequestedAction.Stop) {
+                    finishCharacterPractice(TrainingStatus.Stopped, null)
+                    return@launch
+                }
+                beginAudioTransmission(profile)
+                _state.update {
+                    it.copy(
+                        status = TrainingStatus.Playing,
+                        startDelayRemainingMillis = 0,
+                        message = "Training läuft",
+                    )
+                }
+                runCharacterPractice(profile, pool)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                if (requestedAction.value == RequestedAction.Stop) {
+                    finishCharacterPractice(TrainingStatus.Stopped, null)
+                } else {
+                    throw cancelled
+                }
+            } catch (failure: Throwable) {
+                if (requestedAction.value == RequestedAction.Stop) {
+                    finishCharacterPractice(TrainingStatus.Stopped, null)
+                } else {
+                    finishCharacterPractice(
+                        TrainingStatus.Stopped,
+                        "Audioausgabe nicht verfügbar: ${failure.message ?: "unbekannter Fehler"}",
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun runCharacterPractice(profile: TrainingProfile, pool: List<MorseCharacter>) {
+        val characterPauseMillis = profile.pauseBetweenCharacters * dotDurationMillis(profile.speedWpm)
+        while (true) {
+            if (requestedAction.value == RequestedAction.Stop) {
+                finishCharacterPractice(TrainingStatus.Stopped, null)
+                return
+            }
+            val character = pool.random()
+            playMorsePattern(character.pattern)
+            completeCharacterPracticeCharacter(character.id)
+
+            var remainingPause = characterPauseMillis
+            while (remainingPause > 0L) {
+                if (requestedAction.value == RequestedAction.Stop) {
+                    finishCharacterPractice(TrainingStatus.Stopped, null)
+                    return
+                }
+                val pauseSlice = minOf(remainingPause, 40L)
+                delay(pauseSlice)
+                remainingPause -= pauseSlice
+            }
+        }
+    }
+
+    private fun completeCharacterPracticeCharacter(characterId: String) {
+        _state.update { current ->
+            val session = current.characterPracticeSession ?: return@update current
+            if (session.finished) return@update current
+            val counts = session.counts.toMutableMap()
+            session.pendingCharacterId?.let { unansweredId ->
+                counts[unansweredId] = (counts[unansweredId] ?: CharacterStatistics()).let {
+                    it.copy(notHeard = it.notHeard + 1L)
+                }
+            }
+            current.copy(
+                characterPracticeSession = session.copy(
+                    counts = counts,
+                    presentedCount = session.presentedCount + 1L,
+                    pendingCharacterId = characterId,
+                ),
+            )
+        }
+    }
+
     fun requestPause() {
         if (_state.value.status == TrainingStatus.Playing) requestedAction.value = RequestedAction.Pause
     }
 
     fun requestStop() {
+        if (_state.value.trainingUnit == TrainingUnit.CharacterPractice) {
+            when (_state.value.status) {
+                TrainingStatus.Starting -> requestedAction.value = RequestedAction.Stop
+                TrainingStatus.Playing -> {
+                    requestedAction.value = RequestedAction.Stop
+                    closeAudioOutput()
+                    trainingJob?.cancel()
+                }
+                else -> Unit
+            }
+            return
+        }
         when (_state.value.status) {
             TrainingStatus.Starting, TrainingStatus.Playing -> requestedAction.value = RequestedAction.Stop
             TrainingStatus.Paused -> {
@@ -633,6 +898,10 @@ class TrainerController {
     }
 
     private fun finish(status: TrainingStatus, message: String?) {
+        if (_state.value.trainingUnit == TrainingUnit.CharacterPractice) {
+            finishCharacterPractice(status, message)
+            return
+        }
         freezeTimer()
         closeAudioOutput()
         requestedAction.value = RequestedAction.None
@@ -644,6 +913,43 @@ class TrainerController {
                 startDelayRemainingMillis = 0,
                 visibleTranscript = it.transcript,
                 pendingReview = it.transmittedCharacters.takeIf { characters -> characters.isNotEmpty() },
+                message = message,
+            )
+        }
+        trainingJob = null
+        if (appVisible.value) scheduleToneSamplePreparation(_state.value.selectedProfile)
+    }
+
+    private fun finishCharacterPractice(status: TrainingStatus, message: String?) {
+        closeAudioOutput()
+        requestedAction.value = RequestedAction.None
+        resumeGate.value?.complete(Unit)
+        resumeGate.value = null
+        _state.update { current ->
+            val session = current.characterPracticeSession
+            val finishedSession = if (session == null || session.finished) {
+                session
+            } else {
+                val counts = session.counts.toMutableMap()
+                session.pendingCharacterId?.let { unansweredId ->
+                    counts[unansweredId] = (counts[unansweredId] ?: CharacterStatistics()).let {
+                        it.copy(notHeard = it.notHeard + 1L)
+                    }
+                }
+                session.copy(
+                    counts = counts,
+                    pendingCharacterId = null,
+                    finished = true,
+                )
+            }
+            current.copy(
+                status = status,
+                startDelayRemainingMillis = 0,
+                transcript = "",
+                visibleTranscript = null,
+                transmittedCharacters = emptyList(),
+                pendingReview = null,
+                characterPracticeSession = finishedSession,
                 message = message,
             )
         }

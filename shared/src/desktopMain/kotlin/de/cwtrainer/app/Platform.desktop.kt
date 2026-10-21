@@ -42,6 +42,12 @@ actual fun saveStatistics(data: String) {
     profilePreferences.put("statistics", data)
 }
 
+actual fun loadSavedTrainingUnit(): String? = profilePreferences.get("trainingUnit", null)
+
+actual fun saveTrainingUnit(value: String) {
+    profilePreferences.put("trainingUnit", value)
+}
+
 actual suspend fun openAudioOutput() = withContext(Dispatchers.IO) {
     synchronized(audioLineLock) {
         if (audioLine?.isOpen != true) {

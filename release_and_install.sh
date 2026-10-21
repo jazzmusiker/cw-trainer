@@ -17,6 +17,11 @@ fi
 
 "$SCRIPT_DIR/release.sh"
 
+if [[ ! -f "$APK_PATH" ]]; then
+    printf 'Release-Build abgeschlossen, aber die versionierte APK wurde nicht gefunden: %s\n' "$APK_PATH" >&2
+    exit 1
+fi
+
 device_output="$(adb devices -l)"
 device_serials=()
 while IFS= read -r line; do
