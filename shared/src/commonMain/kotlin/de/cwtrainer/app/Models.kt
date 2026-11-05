@@ -16,6 +16,11 @@ data class TrainingProfile(
     val frequencyHz: Double = 600.0,
     val pauseBetweenCharacters: Int = 3,
     val pauseBetweenGroups: Int = 7,
+    val useWeightedCharacterSelection: Boolean = false,
+    val letterWeightPercent: Int = 70,
+    val numberWeightPercent: Int = 20,
+    val punctuationWeightPercent: Int = 8,
+    val prosignWeightPercent: Int = 2,
 )
 
 @Serializable
@@ -54,6 +59,8 @@ data class MorseCharacter(
     val prosign: Boolean = false,
 )
 
+enum class MorseCharacterGroup { Letters, Numbers, Punctuation, Prosigns }
+
 object MorseCharacters {
     private val letters = listOf(
         "a" to ".-", "b" to "-...", "c" to "-.-.", "d" to "-..", "e" to ".",
@@ -70,6 +77,7 @@ object MorseCharacters {
         "." to ".-.-.-", "," to "--..--", "-" to "-....-", ":" to "---...", "/" to "-..-.",
         "?" to "..--..", "!" to "-.-.--", ";" to "-.-.-.", "(" to "-.--.", ")" to "-.--.-", "=" to "-...-", "+" to ".-.-."
     )
+    private val punctuationIds = punctuation.mapTo(mutableSetOf()) { it.first }
 
     val all: List<MorseCharacter> = buildList {
         letters.forEach { (label, code) -> add(MorseCharacter(label, label, code)) }
@@ -86,6 +94,13 @@ object MorseCharacters {
        // add(MorseCharacter("<BT>", "<BT>", "-...-", prosign = true))
         add(MorseCharacter("<KN>", "<KN>", "-.--.", prosign = true))
         add(MorseCharacter("<HH>", "<HH>", "........", prosign = true))
+    }
+
+    fun groupOf(character: MorseCharacter): MorseCharacterGroup = when {
+        character.prosign -> MorseCharacterGroup.Prosigns
+        character.id.length == 1 && character.id[0] in '0'..'9' -> MorseCharacterGroup.Numbers
+        character.id in punctuationIds -> MorseCharacterGroup.Punctuation
+        else -> MorseCharacterGroup.Letters
     }
 }
 

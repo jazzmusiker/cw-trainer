@@ -65,6 +65,7 @@ Dieses Dokument beschreibt den aktuellen Funktionsumfang und das Verhalten der A
 ## 3. Profile
 
 - Ein Profil ist ein benannter Satz von Trainingseinstellungen und einer Morsezeichen-Auswahl.
+- Der Verteilungsmodus und die vier Zeichengruppengewichte gehören ebenfalls zum Profil.
 - Das Profilmenü im Header erlaubt die Auswahl eines gespeicherten Profils. Das ausgewählte Profil wird gespeichert und beim nächsten App-Start wieder ausgewählt.
 - Das erste Profil heißt **Default** und wird beim ersten Start automatisch angelegt.
 - **+** öffnet einen Dialog zur Profilerstellung. Ein neues Profil wird direkt ausgewählt und erhält alle Standardwerte.
@@ -89,11 +90,21 @@ Alle folgenden Werte gehören zum ausgewählten Profil. Sliderwerte werden ganzz
 | Pause zwischen Zeichen | 3–20 Punktlängen | 3 | Stille zwischen Zeichen derselben Gruppe. |
 | Pause zwischen Gruppen | 7–30 Punktlängen | 7 | Stille zwischen zwei Gruppen. |
 
+### Zeichengewichtung in „Lesen üben“
+
+- Switch zwischen **Gleichverteilung** (Standard) und **Gewichtung**. Bestehende Profile ohne gespeicherten Modus verwenden **Gleichverteilung**.
+- Nur bei aktivierter Gewichtung werden vier ganzzahlige Regler von 0 bis 100 % angezeigt: Buchstaben 70 %, Zahlen 20 %, Interpunktionszeichen 8 %, Prosigns 2 %. Die Werte sind unabhängig und müssen zusammen nicht 100 % ergeben.
+- Die Gruppen enthalten: Buchstaben `a`–`z` und `ä`, `ö`, `ü`; Zahlen `0`–`9`; Interpunktionszeichen `.`, `,`, `-`, `:`, `/`, `?`, `!`, `;`, `(`, `)`, `=`, `+`; sowie die verfügbaren Prosigns.
+- Nur in **Lesen üben** werden Zeichen nach diesen Gruppenanteilen gezogen. **Zeichen üben** und CQ-Test werden nicht beeinflusst.
+- Bei jeder Zeichenposition werden Gruppen ohne aktivierte Zeichen und Gruppen mit Gewicht 0 ausgelassen. Die positiven Gewichte der übrigen Gruppen werden auf 100 % normalisiert. Danach wird eine Gruppe gemäß ihrem Anteil und darin ein aktiviertes Zeichen gleichverteilt ausgewählt. Ziehungen sind unabhängig und mit Wiederholung.
+- Wenn keine Gruppe mit aktivierten Zeichen ein positives Gewicht hat, startet das Training nicht. Die Trainingsansicht zeigt die Meldung, dass mindestens eine Gruppe mit aktivierten Zeichen positives Gewicht benötigt. Es gibt keinen Gleichverteilungs-Fallback.
+- Änderungen werden mit dem Profil gespeichert und gelten für einen neuen Trainingsstart.
+
 ### Morsezeichen-Auswahl
 
 - Die Zeichenliste ist scrollbar und zeigt Checkbox, laufende Nummer, Zeichen, Morsecode und bei Prosigns die Kennzeichnung **PROSIGN**.
 - Standardmäßig sind alle Zeichen aktiviert. Mindestens ein Zeichen muss aktiviert bleiben.
-- Die Trainingszeichen werden zufällig und mit Wiederholung aus den aktivierten Zeichen gewählt.
+- Im Modus **Gleichverteilung** werden die Trainingszeichen gleichverteilt und mit Wiederholung aus allen aktivierten Zeichen gewählt. Im Modus **Gewichtung** gelten die Gruppenregeln aus „Zeichengewichtung in Lesen üben“.
 - Prosigns zählen als ein Zeichen für die Gruppengröße und werden ohne Buchstabenabstand als zusammenhängende Morsezeichen ausgegeben.
 
 ### CQ-Test

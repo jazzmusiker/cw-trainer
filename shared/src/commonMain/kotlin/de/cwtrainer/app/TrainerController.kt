@@ -22,6 +22,7 @@ import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 private enum class RequestedAction { None, Pause, Stop }
+private data class WeightedMorseGroup(val weight: Int, val characters: List<MorseCharacter>)
 
 class TrainerController {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -61,6 +62,10 @@ class TrainerController {
                 frequencyHz = profile.frequencyHz.coerceIn(100.0, 2_000.0),
                 pauseBetweenCharacters = profile.pauseBetweenCharacters.coerceIn(3, 20),
                 pauseBetweenGroups = profile.pauseBetweenGroups.coerceIn(7, 30),
+                letterWeightPercent = profile.letterWeightPercent.coerceIn(0, 100),
+                numberWeightPercent = profile.numberWeightPercent.coerceIn(0, 100),
+                punctuationWeightPercent = profile.punctuationWeightPercent.coerceIn(0, 100),
+                prosignWeightPercent = profile.prosignWeightPercent.coerceIn(0, 100),
             )
         }
         return TrainerUiState(
@@ -279,6 +284,10 @@ class TrainerController {
                 frequencyHz = profile.frequencyHz.coerceIn(100.0, 2_000.0),
                 pauseBetweenCharacters = profile.pauseBetweenCharacters.coerceIn(3, 20),
                 pauseBetweenGroups = profile.pauseBetweenGroups.coerceIn(7, 30),
+                letterWeightPercent = profile.letterWeightPercent.coerceIn(0, 100),
+                numberWeightPercent = profile.numberWeightPercent.coerceIn(0, 100),
+                punctuationWeightPercent = profile.punctuationWeightPercent.coerceIn(0, 100),
+                prosignWeightPercent = profile.prosignWeightPercent.coerceIn(0, 100),
             )
         }
         val profiles = current.profiles.map { if (it.id == selected.id) changed else it }
@@ -296,7 +305,7 @@ class TrainerController {
                 transmittedCharacters = if (resetCharacterPractice) emptyList() else it.transmittedCharacters,
                 pendingReview = if (resetCharacterPractice) null else it.pendingReview,
                 characterPracticeSession = if (resetCharacterPractice) null else it.characterPracticeSession,
-                message = if (resetCharacterPractice) null else it.message,
+                message = if (resetCharacterPractice || it.message?.startsWith("Gewichtung:") == true) null else it.message,
             )
         }
         if (resetCharacterPractice && current.status in listOf(TrainingStatus.Starting, TrainingStatus.Playing, TrainingStatus.Paused)) {
@@ -538,6 +547,12 @@ class TrainerController {
         val profile = _state.value.selectedProfile
         val enabled = profile.enabledCharacterIds.mapNotNull { id -> MorseCharacters.all.firstOrNull { it.id == id } }
             .ifEmpty { listOf(MorseCharacters.all.first()) }
+        if (profile.useWeightedCharacterSelection && weightedGroups(profile, enabled).isEmpty()) {
+            _state.update {
+                it.copy(message = "Gewichtung: Mindestens eine Gruppe mit aktivierten Zeichen benötigt ein Gewicht größer 0.")
+            }
+            return
+        }
         val durationMillis = profile.trainingLengthSeconds * 1_000L
         val startDelayMillis = profile.pauseBeforeStartSeconds * 1_000L
         requestedAction.value = RequestedAction.None
@@ -777,7 +792,13 @@ class TrainerController {
                         finish(TrainingStatus.Finished, "Training beendet")
                         return
                     }
-                    val character = enabled.random()
+                    val character = selectReadingCharacter(profile, enabled) ?: run {
+                        finish(
+                            TrainingStatus.Stopped,
+                            "Gewichtung: Mindestens eine Gruppe mit aktivierten Zeichen benötigt ein Gewicht größer 0.",
+                        )
+                        return
+                    }
                     emitCharacter(character)
                     appendTranscript(character, index == 0 && _state.value.transcript.isNotEmpty())
                     if (!handleCharacterBoundary()) return
@@ -788,6 +809,36 @@ class TrainerController {
         } catch (failure: Throwable) {
             finish(TrainingStatus.Stopped, "Audioausgabe nicht verfügbar: ${failure.message ?: "unbekannter Fehler"}")
         }
+    }
+
+    private fun selectReadingCharacter(profile: TrainingProfile, enabled: List<MorseCharacter>): MorseCharacter? {
+        if (!profile.useWeightedCharacterSelection) return enabled.takeIf { it.isNotEmpty() }?.random()
+
+        val groups = weightedGroups(profile, enabled)
+        val totalWeight = groups.sumOf { it.weight }
+        if (totalWeight <= 0) return null
+
+        var selectedWeight = Random.nextInt(totalWeight)
+        for (group in groups) {
+            if (selectedWeight < group.weight) return group.characters.random()
+            selectedWeight -= group.weight
+        }
+        return null
+    }
+
+    private fun weightedGroups(profile: TrainingProfile, enabled: List<MorseCharacter>): List<WeightedMorseGroup> =
+        MorseCharacterGroup.values().mapNotNull { group ->
+            val weight = profile.weightFor(group)
+            if (weight <= 0) return@mapNotNull null
+            val characters = enabled.filter { MorseCharacters.groupOf(it) == group }
+            characters.takeIf { it.isNotEmpty() }?.let { WeightedMorseGroup(weight, it) }
+        }
+
+    private fun TrainingProfile.weightFor(group: MorseCharacterGroup): Int = when (group) {
+        MorseCharacterGroup.Letters -> letterWeightPercent
+        MorseCharacterGroup.Numbers -> numberWeightPercent
+        MorseCharacterGroup.Punctuation -> punctuationWeightPercent
+        MorseCharacterGroup.Prosigns -> prosignWeightPercent
     }
 
     private suspend fun emitCharacter(character: MorseCharacter) {

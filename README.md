@@ -37,6 +37,12 @@ Settings belong to the selected profile and are saved automatically when changed
 | **Pause between characters** | 3–20 dot lengths | 3 dot lengths | Time between characters in the same group. |
 | **Pause between groups** | 7–30 dot lengths | 7 dot lengths | Time between two groups. After a complete group pause, the gap appears as `␠` in the review. |
 
+### Character distribution in “Lesen üben”
+
+Each profile has a switch between equal distribution and group weighting. Equal distribution is the default and keeps the current behavior. In weighted mode, four integer sliders from 0% to 100% set the weights for letters (70%), digits (20%), punctuation (8%), and prosigns (2%). The weights do not need to add up to 100%.
+
+For each transmitted character, the app ignores groups with no enabled characters or a weight of 0, normalizes the positive weights of the remaining groups, chooses a group, and then chooses uniformly among that group's enabled characters. Characters may repeat. Umlauts belong to the letter group. If no group with enabled characters has a positive weight, **Start** does not begin training and shows a message explaining that a positive weight is needed. This feature affects **Lesen üben** only; **Zeichen üben** remains uniformly distributed.
+
 Under **Morse characters**, choose which characters may be sent at random. All available characters are enabled by default; at least one must remain enabled. Available characters include letters, German umlauts, digits, punctuation marks, and the prosigns `<AS>`, `<VE>`, `<KA>`, `<SK>`, `<KN>`, and `<HH>`. Prosigns are sent as continuous Morse sequences.
 
 The speaker button next to the tone-pitch control plays **“CQ TEST”** using the current speed, pitch, and pauses. The training-character selection and group-size settings do not affect this test. The audio channel is opened for playback and closed afterward.
@@ -182,6 +188,12 @@ Die Einstellungen gehören immer zum ausgewählten Profil und werden bei einer �
 | **Tonhöhe** | 100–2000 Hz | 600 Hz | Frequenz des Morse-Tons. |
 | **Pause zwischen Zeichen** | 3–20 Punktlängen | 3 Punktlängen | Zeit zwischen zwei Zeichen innerhalb einer Gruppe. |
 | **Pause zwischen Gruppen** | 7–30 Punktlängen | 7 Punktlängen | Zeit zwischen zwei Gruppen. Nach einer vollständig abgelaufenen Gruppenpause wird der Abstand in der Auswertung als `␠` dargestellt. |
+
+### Zeichenverteilung bei „Lesen üben“
+
+Jedes Profil hat einen Switch zwischen Gleichverteilung und Gewichtung. Gleichverteilung ist der Standard und behält das bisherige Verhalten bei. Im Modus **Gewichtung** legen vier ganzzahlige Regler von 0 bis 100 % die Anteile für Buchstaben (70 %), Zahlen (20 %), Interpunktionszeichen (8 %) und Prosigns (2 %) fest. Die Werte müssen zusammen nicht 100 % ergeben.
+
+Für jedes gesendete Zeichen lässt die Anwendung Gruppen ohne aktivierte Zeichen und Gruppen mit Gewicht 0 aus. Sie normalisiert die positiven Gewichte der übrigen Gruppen, wählt eine Gruppe und daraus gleichverteilt eines ihrer aktivierten Zeichen. Zeichen können wiederholt vorkommen. Umlaute gehören zur Buchstabengruppe. Hat keine Gruppe mit aktivierten Zeichen ein positives Gewicht, startet **Lesen üben** nicht und zeigt eine entsprechende Meldung. Die Gewichtung gilt nur für **Lesen üben**; **Zeichen üben** bleibt gleichverteilt.
 
 Unter **Morsezeichen** wählst du aus, welche Zeichen zufällig gesendet werden dürfen. Standardmäßig sind alle verfügbaren Zeichen ausgewählt; mindestens ein Zeichen muss ausgewählt bleiben. Verfügbar sind Buchstaben, Umlaute, Ziffern, Satzzeichen und die Prosigns `<AS>`, `<VE>`, `<KA>`, `<SK>`, `<KN>` und `<HH>`. Prosigns werden als zusammenhängende Morsezeichen gesendet.
 

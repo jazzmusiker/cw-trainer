@@ -40,6 +40,8 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Slider
 import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Surface
+import androidx.compose.material.Switch
+import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextFieldDefaults
@@ -817,11 +819,12 @@ private fun TrainingScreen(state: TrainerUiState, controller: TrainerController)
                 paused -> StatusText(text = "Training pausiert · ${remainingSeconds}s verbleiben")
                 state.message?.startsWith("Audioausgabe") == true -> StatusText(text = state.message.orEmpty())
                 state.message?.startsWith("Statistik") == true -> StatusText(text = state.message.orEmpty())
+                state.message?.startsWith("Gewichtung:") == true -> StatusText(text = state.message.orEmpty())
             }
             when {
                 state.pendingReview != null -> TranscriptReviewPanel(state.pendingReview, controller)
                 state.visibleTranscript != null -> TranscriptPanel(state.visibleTranscript)
-                state.message != null && !starting && !active && !paused && !state.message.startsWith("Audioausgabe") && !state.message.startsWith("Statistik") -> StatusText(text = state.message)
+                state.message != null && !starting && !active && !paused && !state.message.startsWith("Audioausgabe") && !state.message.startsWith("Statistik") && !state.message.startsWith("Gewichtung:") -> StatusText(text = state.message)
                 !starting && !active && !paused && state.message == null -> Spacer(Modifier.height(48.dp))
             }
         }
@@ -1234,6 +1237,87 @@ private fun SettingsScreen(state: TrainerUiState, controller: TrainerController)
                 steps = 22,
                 onValueChange = { value -> controller.updateProfile { it.copy(pauseBetweenGroups = value.roundToInt()) } },
             )
+        }
+        item { SectionTitle("Verteilung in Lesen üben") }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PanelBlack, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Zeichengewichtung", color = SoftYellow, fontSize = 14.sp)
+                    Text(
+                        if (profile.useWeightedCharacterSelection) "Nach Zeichengruppe gewichten" else "Alle aktivierten Zeichen gleichverteilt",
+                        color = Muted,
+                        fontSize = 12.sp,
+                    )
+                }
+                Switch(
+                    checked = profile.useWeightedCharacterSelection,
+                    onCheckedChange = { enabled ->
+                        controller.updateProfile { it.copy(useWeightedCharacterSelection = enabled) }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MorseOrange,
+                        checkedTrackColor = WarmYellow.copy(alpha = 0.5f),
+                        uncheckedThumbColor = Muted,
+                        uncheckedTrackColor = Muted.copy(alpha = 0.45f),
+                    ),
+                )
+            }
+        }
+        if (profile.useWeightedCharacterSelection) {
+            item {
+                SettingSlider(
+                    title = "Buchstaben",
+                    valueLabel = "${profile.letterWeightPercent} %",
+                    value = profile.letterWeightPercent.toFloat(),
+                    range = 0f..100f,
+                    steps = 99,
+                    onValueChange = { value ->
+                        controller.updateProfile { it.copy(letterWeightPercent = value.roundToInt()) }
+                    },
+                )
+            }
+            item {
+                SettingSlider(
+                    title = "Zahlen",
+                    valueLabel = "${profile.numberWeightPercent} %",
+                    value = profile.numberWeightPercent.toFloat(),
+                    range = 0f..100f,
+                    steps = 99,
+                    onValueChange = { value ->
+                        controller.updateProfile { it.copy(numberWeightPercent = value.roundToInt()) }
+                    },
+                )
+            }
+            item {
+                SettingSlider(
+                    title = "Interpunktionszeichen",
+                    valueLabel = "${profile.punctuationWeightPercent} %",
+                    value = profile.punctuationWeightPercent.toFloat(),
+                    range = 0f..100f,
+                    steps = 99,
+                    onValueChange = { value ->
+                        controller.updateProfile { it.copy(punctuationWeightPercent = value.roundToInt()) }
+                    },
+                )
+            }
+            item {
+                SettingSlider(
+                    title = "Prosigns",
+                    valueLabel = "${profile.prosignWeightPercent} %",
+                    value = profile.prosignWeightPercent.toFloat(),
+                    range = 0f..100f,
+                    steps = 99,
+                    onValueChange = { value ->
+                        controller.updateProfile { it.copy(prosignWeightPercent = value.roundToInt()) }
+                    },
+                )
+            }
         }
         item { SectionTitle("Morsezeichen · ${profile.enabledCharacterIds.size} ausgewählt") }
         item {
